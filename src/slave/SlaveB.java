@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 public class SlaveB {
 
@@ -17,7 +16,6 @@ public class SlaveB {
 
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
-        Thread thread = new Thread();
         Task task;
 
         try (Socket socket = new Socket(hostName, portNumber);
@@ -26,8 +24,7 @@ public class SlaveB {
 
             while ((task = (Task) in.readObject()) != null) {
                 System.out.println("Received: " + task);
-                thread.start();
-
+                
                 if (task.getClass() == TaskB.class) {
                     Thread.sleep(2000);
                     System.out.println("This task should take 2 seconds.");
@@ -38,15 +35,9 @@ public class SlaveB {
                     System.out.println("This task should take 10 seconds.");
                 }
 
-                thread.join();
                 System.out.println("Completed: " + task);
                 out.writeObject(task);
             }
-        }
-
-        catch (UnknownHostException e) {
-            System.err.println("Don't know about host " + hostName);
-            System.exit(1);
         }
 
         catch (IOException e) {
@@ -55,12 +46,12 @@ public class SlaveB {
         }
 
         catch (InterruptedException e) {
-            System.err.println("Thread was interrupted.");
+            System.err.println("Thread was interrupted while asleep.");
             System.exit(1);
         }
 
         catch (ClassNotFoundException e) {
-            System.err.println("Couldn't find the class.");
+            System.err.println("Couldn't find the object's class.");
             System.exit(1);
         }
     }
