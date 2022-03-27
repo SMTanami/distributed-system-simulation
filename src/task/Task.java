@@ -2,18 +2,19 @@ package task;
 import java.io.Serializable;
 
 public abstract class Task implements Serializable {
-    char client;
-    int taskNum;
-    boolean completionStatus;
 
-    public Task(char client, int taskNum) {
-        this.client = client;
+    protected final int clientID;
+    protected int taskNum;
+    private boolean completionStatus;
+
+    public Task(int clientID, int taskNum) {
+        this.clientID = clientID;
         this.taskNum = taskNum;
         completionStatus = false;
     }
 
-    public char getClient() {
-        return client;
+    public int getClient() {
+        return clientID;
     }
 
     public int getTaskNum() {
@@ -24,7 +25,10 @@ public abstract class Task implements Serializable {
         return completionStatus;
     }
 
-    public void taskCompleted() {
+    public void setTaskCompleted() {
         completionStatus = true;
     }
+
+    @Override
+    public abstract String toString();
 }

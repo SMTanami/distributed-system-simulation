@@ -1,5 +1,8 @@
 package slave;
 
+import task.Task;
+import task.TaskB;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
