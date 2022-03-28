@@ -30,7 +30,7 @@ public class Receiver extends Thread {
         try(DataInputStream inStream = new DataInputStream(clientSocket.getInputStream()))
         {
             while (!tracker.isSatisfied()) {
-                tracker.give(inStream.readInt());
+                tracker.give(inStream.readInt()); // Blocking call
             }
         }
 

@@ -31,7 +31,7 @@ public class Sender extends Thread {
         {
             Task t;
             while ((t = tracker.take()) != null) {
-                outStream.writeObject(t);
+                outStream.writeObject(t); // Unblock
             }
         }
 
