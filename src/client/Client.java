@@ -8,15 +8,26 @@ import task.TaskA;
 import task.TaskB;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+
 import java.net.Socket;
 import java.util.Random;
 
-public class Client
-{
+/**
+ * This class acts as a Client in a distributed system. It initializes tasks and utilizes multithreading to send and
+ * receive them to a corresponding master class.
+ * <p>
+ * To use this class, start it from the command line by passing in a host name, port number, and the amount of tasks you
+ * would like to get done.
+ */
+public class Client {
+
     private static final Random RANDOM = new Random();
 
+    /**
+     * @param args 1. hostName (IP address of Server) 2. Port Number of the Master program 3. amount of tasks desired to
+     *             be created and executed
+     * @throws IOException if the program is interrupted
+     */
     public static void main(String[] args) throws IOException {
 
         if (args.length != 3) {
@@ -54,6 +65,11 @@ public class Client
 
     }
 
+    /**
+     * @param taskAmount amount of tasks to generate and initialize
+     * @param clientID the clientID that will be used to identify task's parent-client in other programs
+     * @return an array of Tasks that contains as many tasks as specified via 'taskAmount'
+     */
     private static Task[] initializeTasks(int taskAmount, int clientID)
     {
         Task[] tasks = new Task[taskAmount];

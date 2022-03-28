@@ -2,6 +2,7 @@ package client.tracking;
 
 import task.Task;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +16,7 @@ public class Tracker {
     private int insertionPoint = 0;
     protected final Task[] tasks;
     protected final Task[] completedTasks;
-    protected final Map<Integer, Task> tasksInProgress = new HashMap<>();
+    protected final Map<Integer, Task> tasksInProgress = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * @param tasks the tasks that are to be completed by the client.
@@ -26,9 +27,9 @@ public class Tracker {
     }
 
     /**
-     * Takes the next task from the uncompleted list of tasks. Returns the next task or {@code null}
+     * Takes the next task from the uncompleted list of tasks and returns it or {@code null}
      * if no other task is available.
-     * @return The next Task that has yet to be completed
+     * @return The next Task that has yet to be completed or {@code null}
      */
     public synchronized Task take() {
 
