@@ -50,8 +50,8 @@ public class Client {
         Sender sender = new Sender(tracker, clientSocket);
         Receiver receiver = new Receiver(tracker, clientSocket);
 
-        sender.run();
-        receiver.run();
+        sender.start();
+        receiver.start();
 
         try
         {

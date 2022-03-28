@@ -3,6 +3,8 @@ package client.comms;
 import client.tracking.Tracker;
 import task.Task;
 
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.net.Socket;
 
 /**
@@ -24,9 +26,16 @@ public class Receiver extends Thread {
     }
 
     @Override public void run() {
-        /*
-        Somehow receive a task?
-        tracker.give(taskID); //let the receiver know a task has completed
-         */
+
+        try(DataInputStream inStream = new DataInputStream(clientSocket.getInputStream()))
+        {
+            int taskID;
+            while (tracker.give( (taskID = inStream.readInt()) ));
+        }
+
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
 }

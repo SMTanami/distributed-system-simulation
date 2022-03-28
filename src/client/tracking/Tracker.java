@@ -14,9 +14,9 @@ public class Tracker {
 
     private int takePoint = 0;
     private int insertionPoint = 0;
-    protected final Task[] tasks;
-    protected final Task[] completedTasks;
-    protected final Map<Integer, Task> tasksInProgress = Collections.synchronizedMap(new HashMap<>());
+    private final Task[] tasks;
+    private final Task[] completedTasks;
+    private final Map<Integer, Task> tasksInProgress = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * @param tasks the tasks that are to be completed by the client.
@@ -31,7 +31,7 @@ public class Tracker {
      * if no other task is available.
      * @return The next Task that has yet to be completed or {@code null}
      */
-    public synchronized Task take() {
+    public Task take() {
 
         if (takePoint > tasks.length)
             return null;
@@ -49,7 +49,7 @@ public class Tracker {
      * @param taskID the taskID to identify the task being given to the tracker.
      * @return true if all tasks were completed, false otherwise
      */
-    public synchronized boolean give(int taskID) {
+    public boolean give(int taskID) {
         completedTasks[insertionPoint] = tasksInProgress.remove(taskID);
         insertionPoint++;
 

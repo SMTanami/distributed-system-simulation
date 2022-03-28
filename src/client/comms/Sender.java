@@ -1,7 +1,10 @@
 package client.comms;
 
 import client.tracking.Tracker;
+import task.Task;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
@@ -23,13 +26,18 @@ public class Sender extends Thread {
     }
 
     @Override public void run() {
-        /*
-        Task t;
-        while((t = tracker.take) != null) {
-            client socket output stream yadda yadda
+
+        try(ObjectOutputStream outStream = new ObjectOutputStream(clientSocket.getOutputStream()))
+        {
+            Task t;
+            while ((t = tracker.take()) != null) {
+                outStream.writeObject(t);
+            }
         }
-         */
+
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
     }
-
-
 }
