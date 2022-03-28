@@ -46,13 +46,19 @@ public class Tracker {
     }
 
     /**
-     * @param taskID the taskID to identify the task being given to the tracker.
-     * @return true if all tasks were completed, false otherwise
+     * Removes the given task from tracking collection and moves it into a 'completion array'
+     * @param taskID the ID of the task thast has been completed
      */
-    public boolean give(int taskID) {
+    public void give(int taskID) {
         completedTasks[insertionPoint] = tasksInProgress.remove(taskID);
         insertionPoint++;
+    }
 
+    /**
+     * Use this method to test for more tasks to complete
+     * @return true if the tracker sees all tasks complete, false otherwise
+     */
+    public boolean isSatisfied() {
         return insertionPoint == tasks.length;
     }
 }

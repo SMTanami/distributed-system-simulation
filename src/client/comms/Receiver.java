@@ -29,8 +29,9 @@ public class Receiver extends Thread {
 
         try(DataInputStream inStream = new DataInputStream(clientSocket.getInputStream()))
         {
-            int taskID;
-            while (tracker.give( (taskID = inStream.readInt()) ));
+            while (!tracker.isSatisfied()) {
+                tracker.give(inStream.readInt());
+            }
         }
 
         catch (IOException e)
