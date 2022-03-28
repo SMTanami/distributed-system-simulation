@@ -4,7 +4,7 @@ import java.io.Serializable;
 public abstract class Task implements Serializable {
 
     protected final int clientID;
-    protected int taskNum;
+    protected final int taskNum;
     private boolean completionStatus;
 
     public Task(int clientID, int taskNum) {
