@@ -8,7 +8,7 @@ public class TaskA extends Task {
 
     @Override
     public String toString() {
-        return "TaskA {" + "ClientID = " + clientID + ", " +
-                "Task = " + taskNum + '}';
+        return "TaskA {" + "ClientID = " + getClientID() + ", " +
+                "Task = " + getTaskNum() + '}';
     }
 }
