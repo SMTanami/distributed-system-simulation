@@ -31,7 +31,7 @@ public class Tracker {
      * if no other task is available.
      * @return The next Task that has yet to be completed or {@code null}
      */
-    public Task take() {
+    public synchronized Task take() {
 
         if (takePoint > tasks.length)
             return null;
@@ -49,7 +49,7 @@ public class Tracker {
      * Removes the given task from tracking collection and moves it into a 'completion array'
      * @param taskID the ID of the task thast has been completed
      */
-    public void give(int taskID) {
+    public synchronized void give(int taskID) {
         completedTasks[insertionPoint] = tasksInProgress.remove(taskID);
         insertionPoint++;
     }
@@ -58,7 +58,7 @@ public class Tracker {
      * Use this method to test for more tasks to complete
      * @return true if the tracker sees all tasks complete, false otherwise
      */
-    public boolean isSatisfied() {
+    public synchronized boolean isSatisfied() {
         return insertionPoint == tasks.length;
     }
 }
