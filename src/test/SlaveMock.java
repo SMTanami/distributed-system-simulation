@@ -19,22 +19,28 @@ public class SlaveMock {
         this.isTypeA = isA;
     }
 
+
     /**
      * @param task task to execute
+     * @return the amount of seconds the slave needed to complete the task
      * @throws InterruptedException if thread is interrupted while asleep
      */
-    public void execute(Task task) throws InterruptedException {
+    public int execute(Task task) throws InterruptedException {
+
+        int sleepAmount = 0;
+
         if (task instanceof TaskA)
             if (isTypeA)
-                Thread.sleep(2_000);
-            else Thread.sleep(10_000);
+                sleepAmount = 2_000;
+            else sleepAmount = 10_000;
 
         else
         if (isTypeA)
-            Thread.sleep(10_000);
-        else Thread.sleep(2_000);
+            sleepAmount = 10_000;
+        else sleepAmount = 2000;
 
+        Thread.sleep(sleepAmount);
+        return sleepAmount / 1000;
     }
-
 }
 
