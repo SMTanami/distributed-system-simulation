@@ -1,13 +1,13 @@
-package client.tracking;
+package sim.client.tracking;
 
-import task.Task;
+import sim.task.Task;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This class is to be used by Sender and Receiver threads as a point of reference for all task related
+ * This class is to be used by Sender and Receiver threads as a point of reference for all sim.task related
  * operations.
  */
 public class Tracker {
@@ -19,7 +19,7 @@ public class Tracker {
     private final Map<Integer, Task> tasksInProgress = Collections.synchronizedMap(new HashMap<>());
 
     /**
-     * @param tasks the tasks that are to be completed by the client.
+     * @param tasks the tasks that are to be completed by the sim.client.
      */
     public Tracker(Task[] tasks) {
         this.tasks = tasks;
@@ -27,8 +27,8 @@ public class Tracker {
     }
 
     /**
-     * Takes the next task from the uncompleted list of tasks and returns it or {@code null}
-     * if no other task is available.
+     * Takes the next sim.task from the uncompleted list of tasks and returns it or {@code null}
+     * if no other sim.task is available.
      * @return The next Task that has yet to be completed or {@code null}
      */
     public synchronized Task take() {
@@ -46,8 +46,8 @@ public class Tracker {
     }
 
     /**
-     * Removes the given task from tracking collection and moves it into a 'completion array'
-     * @param taskID the ID of the task thast has been completed
+     * Removes the given sim.task from tracking collection and moves it into a 'completion array'
+     * @param taskID the ID of the sim.task thast has been completed
      */
     public synchronized void give(int taskID) {
         completedTasks[insertionPoint] = tasksInProgress.remove(taskID);

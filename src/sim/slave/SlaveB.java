@@ -1,7 +1,7 @@
-package slave;
+package sim.slave;
 
-import task.Task;
-import task.TaskB;
+import sim.task.Task;
+import sim.task.TaskB;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -30,12 +30,12 @@ public class SlaveB {
                 
                 if (task.getClass() == TaskB.class) {
                     Thread.sleep(2000);
-                    System.out.println("This task should take 2 seconds.");
+                    System.out.println("This sim.task should take 2 seconds.");
                 }
 
                 else {
                     Thread.sleep(10000);
-                    System.out.println("This task should take 10 seconds.");
+                    System.out.println("This sim.task should take 10 seconds.");
                 }
 
                 System.out.println("Completed: " + task);

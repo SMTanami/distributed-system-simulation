@@ -1,4 +1,4 @@
-package task;
+package sim.task;
 
 public class TaskB extends Task {
 

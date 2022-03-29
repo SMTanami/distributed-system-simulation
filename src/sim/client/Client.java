@@ -1,11 +1,11 @@
-package client;
+package sim.client;
 
-import client.comms.Receiver;
-import client.comms.Sender;
-import client.tracking.Tracker;
-import task.Task;
-import task.TaskA;
-import task.TaskB;
+import sim.client.comms.Receiver;
+import sim.client.comms.Sender;
+import sim.client.tracking.Tracker;
+import sim.task.Task;
+import sim.task.TaskA;
+import sim.task.TaskB;
 
 import java.io.IOException;
 
@@ -24,18 +24,18 @@ public class Client {
     private static final Random RANDOM = new Random();
 
     /**
-     * @param args 1. hostName (IP address of Server) 2. Port Number of the Master program 3. amount of tasks desired to
+     * @param args 1. hostName (IP address of Server) 2. Port Number of the sim.Master program 3. amount of tasks desired to
      *             be created and executed
      * @throws IOException if the program is interrupted
      */
     public static void main(String[] args) throws IOException {
 
         if (args.length != 3) {
-            System.out.println("Usage: java Client <host name> <port number> <task amount>");
+            System.out.println("Usage: java Client <host name> <port number> <sim.task amount>");
             System.exit(1);
         }
 
-        // Get necessary information to connect to Master
+        // Get necessary information to connect to sim.Master
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
 
@@ -65,7 +65,7 @@ public class Client {
 
     /**
      * @param taskAmount amount of tasks to generate and initialize
-     * @param clientID the clientID that will be used to identify task's parent-client in other programs
+     * @param clientID the clientID that will be used to identify sim.task's parent-sim.client in other programs
      * @return an array of Tasks that contains as many tasks as specified via 'taskAmount'
      */
     private static Task[] initializeTasks(int taskAmount, int clientID)
