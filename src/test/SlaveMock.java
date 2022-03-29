@@ -7,9 +7,12 @@ import sim.task.TaskA;
  * A Mock class to mock slaves. This class can be instantiated as a Type A Slave or
  * Type B Slave. It will execute tasks as if thwy were given to real Slaves.
  */
-public class SlaveMock {
+public class SlaveMock extends Thread {
 
     private final boolean isTypeA;
+    private boolean isOccupied = false;
+    private boolean isNeeded = true;
+    private Task currentTask;
 
     /**
      * @param isA Should be true if the SlaveMock instance should mock a Slave of type A.
@@ -19,6 +22,29 @@ public class SlaveMock {
         this.isTypeA = isA;
     }
 
+    @Override
+    public void run() {
+
+        while (isNeeded) {
+            if (currentTask != null)
+            {
+                try {
+                    isOccupied = true;
+                    execute(currentTask);
+                    currentTask = null;
+                } catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+            isOccupied = false;
+        }
+
+    }
+
+    public synchronized void setCurrentTask(Task currentTask) {
+        this.currentTask = currentTask;
+    }
 
     /**
      * @param task task to execute
@@ -39,8 +65,22 @@ public class SlaveMock {
             sleepAmount = 10_000;
         else sleepAmount = 2000;
 
-        Thread.sleep(sleepAmount);
+        sleep(sleepAmount);
+        if (isTypeA)
+            System.out.println("Slave A completed: " + currentTask);
+        else System.out.println("Slave B completed: " + currentTask);
         return sleepAmount / 1000;
+    }
+
+    /**
+     * @return true if the slave is available, false otherwise
+     */
+    public boolean isAvailable() {
+        return !isOccupied;
+    }
+
+    public synchronized void setNeeded(boolean needed) {
+        isNeeded = needed;
     }
 }
 
