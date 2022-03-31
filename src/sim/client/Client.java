@@ -6,6 +6,7 @@ import sim.client.tracking.Tracker;
 import sim.task.Task;
 import sim.task.TaskA;
 import sim.task.TaskB;
+import sim.master.Master;
 
 import java.io.IOException;
 
@@ -24,7 +25,7 @@ public class Client {
     private static final Random RANDOM = new Random();
 
     /**
-     * @param args 1. hostName (IP address of Server) 2. Port Number of the sim.Master program 3. amount of tasks desired to
+     * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link Master} program 3. amount of tasks desired to
      *             be created and executed
      * @throws IOException if the program is interrupted
      */
@@ -35,7 +36,7 @@ public class Client {
             System.exit(1);
         }
 
-        // Get necessary information to connect to sim.Master
+        // Get necessary information to connect to sim.master.Master
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
 
