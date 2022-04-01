@@ -1,22 +1,17 @@
 package sim.master;
 
-import sim.task.Task;
+import sim.master.cmcomms.ClientHandler;
+import sim.master.cmcomms.ClientListener;
 
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 
 public class Master {
 
-    private static final Map<Integer, TaskConfirmer> CONFIRMER_MAP = Collections.synchronizedMap(new HashMap<>());
-    private static final Map<Integer, TaskCollector> COLLECTOR_MAP = Collections.synchronizedMap(new HashMap<>());
-    public static final BlockingQueue<Task> COMPLETED_TASK_LIST = new ArrayBlockingQueue<>(100);
+    private static final Map<Integer, ClientHandler> CLIENTS = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * Initiate the collection of clients and retrival and processing of their tasks
@@ -40,46 +35,37 @@ public class Master {
         // While the collector map is not empty, clear any collectors that have terminated
         do {
             cleanTerminatedClients();
-        } while (COLLECTOR_MAP.size() > 0);
+        } while (CLIENTS.size() > 0);
     }
 
     /**
-     * To be used privately by the master, this method listens for the first client to connect to the master.
-     * Once that initial connection is established, the master creates and starts a collector and confirmer for the
+     * To be used privately by the master, this method listens for the first client to connect to.
+     * Once that initial connection is established, the master creates and starts a ClientHandler for the
      * received client.
      * <p>
-     * Now that an initial connection has been made, the master creates and starts a ClientHandler that will oversee the
-     * responsibility of handinling oncoming clients moving forward.
+     * Now that an initial connection has been made and a ClientHandler has been started, the master creates and starts
+     * a {@link ClientListener} that will oversee the responsibility of listening for oncoming clients moving forward.
      * @param portNumber port number of the server retrieved from CL args
-     * @throws IOException
+     * @throws IOException the stream has been closed and the contained input stream does not support reading after close,
+     * or another I/O error occurs.
      */
     private static void start(int portNumber) throws IOException {
+        // Accept initial client socket
         try(ServerSocket serverSocket = new ServerSocket(portNumber);
-            Socket newClient = serverSocket.accept();
-            DataInputStream dataIn = new DataInputStream(newClient.getInputStream()))
+            Socket incomingClient = serverSocket.accept();
+            DataInputStream dataIn = new DataInputStream(incomingClient.getInputStream()))
         {
+            // Create initial ClientHandler
             int clientID = dataIn.readInt(); // Request clientID upon first connecting with it
-            TaskConfirmer confirmer = new TaskConfirmer(clientID, new DataOutputStream(newClient.getOutputStream()));
-            TaskCollector collector = new TaskCollector(clientID, confirmer, new ObjectInputStream(newClient.getInputStream()));
-            storeAndStartCollectorConfirmer(collector, confirmer);
-            ClientHandler clientHandler = new ClientHandler();
-            clientHandler.setHost(serverSocket);
-            clientHandler.start();
+            ClientHandler handler = new ClientHandler(clientID, incomingClient);
+            // Start the handler and add it to the CLIENTS map
+            handler.start();
+            CLIENTS.put(handler.getClientID(), handler);
+            // Start ClientListener to continue to listen for new clients
+            ClientListener clientListener = new ClientListener();
+            clientListener.setHost(serverSocket);
+            clientListener.start();
         }
-    }
-
-    /**
-     * Stores the given Collector and Confirmer and starts them.
-     * @param collector the new Collector Thread to be spun up and started
-     * @param confirmer the new Confirmer Thread to be spun up and started
-     */
-    public static void storeAndStartCollectorConfirmer(TaskCollector collector, TaskConfirmer confirmer) {
-
-        CONFIRMER_MAP.put(confirmer.getClientID(), confirmer);
-        COLLECTOR_MAP.put(collector.getClientID(), collector);
-
-        collector.start();
-        confirmer.start();
     }
 
     /**
@@ -88,14 +74,18 @@ public class Master {
      */
     private static void cleanTerminatedClients() {
 
-        int index = 0;
-        for (TaskCollector collector : COLLECTOR_MAP.values())
+        for (ClientHandler handler : CLIENTS.values())
         {
-            if (!collector.isAlive())
-            {
-                COLLECTOR_MAP.remove(collector.getClientID());
-                CONFIRMER_MAP.remove(collector.getClientID());
+            if (handler.isTerminated()) {
+                CLIENTS.remove(handler.getClientID());
             }
         }
+    }
+
+    /**
+     * @return this Masters map of Client's ({@link ClientHandler}s)
+     */
+    public static Map<Integer, ClientHandler> getClients() {
+        return CLIENTS;
     }
 }
