@@ -11,7 +11,7 @@ import java.net.Socket;
  * This class will listen for clients that are looking to connect to the connected master and will add them to a shared
  * set whenever they connect.
  */
-public class ClientHandler extends Thread {
+public class ClientListener extends Thread {
 
     private ServerSocket host;
 
@@ -22,13 +22,13 @@ public class ClientHandler extends Thread {
     @Override
     public void run() {
 
-            try (Socket newClient = host.accept();
-                 DataInputStream dataIn = new DataInputStream(newClient.getInputStream()))
+            try (Socket incomingClient = host.accept();
+                 DataInputStream dataIn = new DataInputStream(incomingClient.getInputStream()))
             {
                 int clientID = dataIn.readInt(); // Request clientID upon first connecting with it
-                TaskConfirmer confirmer = new TaskConfirmer(clientID, new DataOutputStream(newClient.getOutputStream()));
-                TaskCollector collector = new TaskCollector(clientID, confirmer, new ObjectInputStream(newClient.getInputStream()));
-                Master.storeAndStartCollectorConfirmer(collector, confirmer);
+                TaskConfirmer confirmer = new TaskConfirmer(clientID, incomingClient);
+                TaskCollector collector = new TaskCollector(clientID, incomingClient);
+                Master.getClients().put(clientID, new ClientHandler(collector, confirmer));
 
             }
             catch (IOException e) {
