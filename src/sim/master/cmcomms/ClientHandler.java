@@ -86,8 +86,9 @@ public class ClientHandler {
 
             try(ObjectInputStream objIn = new ObjectInputStream(myClientSocket.getInputStream())) {
                 Task incomingTask;
-                while ((incomingTask = (Task) objIn.readObject()) != null)
+                while ((incomingTask = (Task) objIn.readObject()).getTaskID() != -1)
                 {
+                    // TODO Instead of null checking, check for a ender-task that notifies the thread to die
                     collectedTasks.add(incomingTask);
                 }
             }
