@@ -7,11 +7,13 @@ import java.io.ObjectInputStream;
 
 public class TaskCollector extends Thread {
     
-    private final int clientID;
     private final ObjectInputStream myTaskInputStream;
+    private final TaskConfirmer myConfirmer;
+    private final int clientID;
     
-    public TaskCollector(int clientID, ObjectInputStream taskInputStream) {
+    public TaskCollector(int clientID, TaskConfirmer confirmer, ObjectInputStream taskInputStream) {
         this.clientID = clientID;
+        this.myConfirmer = confirmer;
         this.myTaskInputStream = taskInputStream;
     }
     
@@ -19,14 +21,26 @@ public class TaskCollector extends Thread {
     public void run() {
         
         Task taskToComplete;
-        while ((taskToComplete = getTask()) != null)
+        while ((taskToComplete = inStreamTask()).getClientID() != 0)
         {
             //TODO put into a collection for processing?
         }
-        
+
+        // Close the given input stream
+        try {
+            myTaskInputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Notify conformer of completion
     }
-    
-    private Task getTask() {
+
+    public int getClientID() {
+        return clientID;
+    }
+
+    private Task inStreamTask() {
         
         try {
             return (Task) myTaskInputStream.readObject();
@@ -38,5 +52,9 @@ public class TaskCollector extends Thread {
         }
         
         return null;
+    }
+
+    private void terminateConfirmer() {
+        myConfirmer.terminate();
     }
 }

@@ -4,21 +4,21 @@ import java.io.Serializable;
 public abstract class Task implements Serializable {
 
     protected final int clientID;
-    protected final int taskNum;
+    protected final int taskID;
     private boolean completionStatus;
 
-    public Task(int clientID, int taskNum) {
+    public Task(int clientID, int taskID) {
         this.clientID = clientID;
-        this.taskNum = taskNum;
+        this.taskID = taskID;
         completionStatus = false;
     }
 
-    public int getClient() {
+    public int getClientID() {
         return clientID;
     }
 
-    public int getTaskNum() {
-        return taskNum;
+    public int getTaskID() {
+        return taskID;
     }
 
     public boolean getCompletionStatus() {

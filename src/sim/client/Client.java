@@ -1,7 +1,7 @@
 package sim.client;
 
-import sim.client.comms.Receiver;
-import sim.client.comms.Sender;
+import sim.client.comms.TaskReceiver;
+import sim.client.comms.TaskSender;
 import sim.client.tracking.Tracker;
 import sim.task.Task;
 import sim.task.TaskA;
@@ -40,26 +40,28 @@ public class Client {
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
 
-        // Initialize clientID and n tasks
-        int clientID = RANDOM.nextInt();
+        // Initialize clientID and n tasks, make sure it's not 0
+        int clientID;
+        while ((clientID = RANDOM.nextInt()) == 0)
+            clientID = RANDOM.nextInt();
         int taskAmount = Integer.parseInt(args[2]);
         Task[] tasks = initializeTasks(taskAmount, clientID);
 
         // Initialize Socket, Sender/Receiver threads, and Tracker
         Socket clientSocket = new Socket(hostName, portNumber);
         Tracker tracker = new Tracker(tasks);
-        Sender sender = new Sender(tracker, clientSocket);
-        Receiver receiver = new Receiver(tracker, clientSocket);
+        TaskSender taskSender = new TaskSender(tracker, clientSocket);
+        TaskReceiver taskReceiver = new TaskReceiver(tracker, clientSocket);
 
-        sender.start();
-        receiver.start();
+        taskSender.start();
+        taskReceiver.start();
 
-        try
-        {
-            sender.join();
-            receiver.join();
-        } catch (InterruptedException e)
-        {
+        try {
+            taskSender.join();
+            taskReceiver.join();
+        }
+
+        catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

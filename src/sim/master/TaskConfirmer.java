@@ -1,34 +1,40 @@
 package sim.master;
 
-import sim.task.Task;
-
 import java.io.DataOutputStream;
-import java.util.ArrayDeque;
-import java.util.Queue;
+import java.io.IOException;
 
 public class TaskConfirmer extends Thread {
 
-    private final int clientID;
     private final DataOutputStream myDataOutputStream;
-    private final Queue<Integer> tasksToSend;
+    private boolean terminate = false;
+    private final int clientID;
 
     public TaskConfirmer(int clientID, DataOutputStream dataOutputStream) {
-        this.clientID = clientID;
         this.myDataOutputStream = dataOutputStream;
-        tasksToSend = new ArrayDeque<>();
+        this.clientID = clientID;
     }
 
-    public void add(int taskID) {
-        tasksToSend.add(taskID);
+    @Override
+    public void run() {
+
+        while (!terminate)
+        {
+            //TODO write ints to client from collection of completed tasks
+        }
+
+        // Close OutputStream
+        try {
+            myDataOutputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public int getClientID() {
         return clientID;
     }
 
-    @Override
-    public void run() {
-        //TODO while there is stuff to return, return them to the proper clients
+    public void terminate() {
+        terminate = true;
     }
-
 }

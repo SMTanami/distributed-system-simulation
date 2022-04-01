@@ -38,7 +38,7 @@ public class Tracker {
 
         else{
             Task t = tasks[takePoint];
-            tasksInProgress.put(t.getTaskNum(), t);
+            tasksInProgress.put(t.getTaskID(), t);
             tasks[takePoint] = null;
             takePoint++;
             return t;

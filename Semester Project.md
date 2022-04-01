@@ -8,7 +8,7 @@ Backlink: [[MOC - Operating Systems]]
 A data Structure that contains:
 	- an int for sim.task number
 	- a boolean for completion status
-	- a char for sim.client sender
+	- a char for sim.client taskSender
 
 
 ### sim.master.Master Class
