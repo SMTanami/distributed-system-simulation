@@ -48,16 +48,6 @@ public class ClientHandler {
     }
 
     /**
-     * Closes socket used by the contained {@link TaskCollector} and {@link TaskConfirmer} and subsequently kill them
-     * gracefully. Additionally, signals this ClientHandler as "terminated" for cleanup by master.
-     * @throws IOException
-     */
-    public void terminate() throws IOException {
-        myClientSocket.close();
-        isTerminated = true;
-    }
-
-    /**
      * @return this ClientHandler's ClientID
      */
     public int getClientID() {
@@ -69,6 +59,16 @@ public class ClientHandler {
      */
     public boolean isTerminated() {
         return isTerminated;
+    }
+
+    /**
+     * Closes socket used by the contained {@link TaskCollector} and {@link TaskConfirmer} and subsequently kill them
+     * gracefully. Additionally, signals this ClientHandler as "terminated" for cleanup by master.
+     * @throws IOException
+     */
+    private void terminate() throws IOException {
+        myClientSocket.close();
+        isTerminated = true;
     }
 
     /**
@@ -88,9 +88,9 @@ public class ClientHandler {
                 Task incomingTask;
                 while ((incomingTask = (Task) objIn.readObject()).getTaskID() != -1)
                 {
-                    // TODO Instead of null checking, check for a ender-task that notifies the thread to die
                     collectedTasks.add(incomingTask);
                 }
+                terminate();
             }
             catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
