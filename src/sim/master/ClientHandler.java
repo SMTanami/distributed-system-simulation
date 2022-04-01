@@ -11,8 +11,9 @@ import java.net.Socket;
  * This class will listen for clients that are looking to connect to the connected master and will add them to a shared
  * set whenever they connect.
  */
-public class Acceptor extends Thread {
+public class Acceptor extends Thread implements AutoCloseable{
 
+    private boolean exit = false;
     private ServerSocket host;
 
     /**
@@ -22,17 +23,21 @@ public class Acceptor extends Thread {
     @Override
     public void run() {
 
+        while (!exit)
+        {
             try (Socket newClient = host.accept();
                  DataInputStream dataIn = new DataInputStream(newClient.getInputStream()))
             {
                 int clientID = dataIn.readInt(); // Request clientID upon first connecting with it
-                TaskCollector collector = new TaskCollector(clientID, new ObjectInputStream(newClient.getInputStream()));
-                TaskConfirmer confirmer = new TaskConfirmer(clientID, new DataOutputStream(newClient.getOutputStream()));
-                Master.getConfirmerMap().put(confirmer.getClientID(), confirmer);
+                TaskCollector collector = new TaskCollector(new ObjectInputStream(newClient.getInputStream()));
+                TaskConfirmer confirmer = new TaskConfirmer(new DataOutputStream(newClient.getOutputStream()));
+                Master.saveCollectorAndConfirmer(clientID, collector, confirmer);
+
             }
             catch (IOException e) {
                 e.printStackTrace();
             }
+        }
     }
 
     /**
@@ -41,5 +46,10 @@ public class Acceptor extends Thread {
      */
     public void setHost(ServerSocket serverSocket) {
         this.host = serverSocket;
+    }
+
+    @Override
+    public void close() throws Exception {
+        exit = true;
     }
 }
