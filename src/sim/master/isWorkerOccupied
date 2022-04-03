@@ -1,0 +1,19 @@
+/*
+ *  This class is used by the Master and its threads to keep track of each Worker's occupied status.
+ */
+
+public class isWorkerOccupied {
+    boolean isOccupied;
+
+    public isWorkerOccupied(boolean isOccupied) {
+        this.isOccupied = isOccupied;
+    }
+
+    public boolean isOccupied() {
+        return isOccupied;
+    }
+
+    public synchronized void setOccupied(boolean occupied) {
+        isOccupied = occupied;
+    }
+}
