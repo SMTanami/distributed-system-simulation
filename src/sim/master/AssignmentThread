@@ -4,15 +4,15 @@ import java.net.Socket;
 import java.util.Queue;
 
 /*
- *  This class contains the Thread which will be used by the Master to assign Tasks to the Workers.
+ *  This class contains the Thread which will be used by the Master to assign Tasks to the Slaves.
  */
 
 public class AssignmentThread extends Thread {
     private final Socket aSocket, bSocket;
     private final Queue<Task> collectedTasks;
-    private final isWorkerOccupied isAOccupied, isBOccupied;
+    private final isSlaveOccupied isAOccupied, isBOccupied;
 
-    public AssignmentThread(Socket aSocket, Socket bSocket, Queue<Task> collectedTasks, isWorkerOccupied isAOccupied, isWorkerOccupied isBOccupied) {
+    public AssignmentThread(Socket aSocket, Socket bSocket, Queue<Task> collectedTasks, isSlaveOccupied isAOccupied, isSlaveOccupied isBOccupied) {
         this.aSocket = aSocket;
         this.bSocket = bSocket;
         this.collectedTasks = collectedTasks;
