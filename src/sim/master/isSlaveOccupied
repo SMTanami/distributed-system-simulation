@@ -1,11 +1,11 @@
 /*
- *  This class is used by the Master and its threads to keep track of each Worker's occupied status.
+ *  This class is used by the Master and its threads to keep track of each Slave's occupied status.
  */
 
-public class isWorkerOccupied {
+public class isSlaveOccupied {
     boolean isOccupied;
 
-    public isWorkerOccupied(boolean isOccupied) {
+    public isSlaveOccupied(boolean isOccupied) {
         this.isOccupied = isOccupied;
     }
 
