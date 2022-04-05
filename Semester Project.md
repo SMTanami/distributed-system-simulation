@@ -6,12 +6,12 @@ Backlink: [[MOC - Operating Systems]]
 
 ### Task Class
 A data Structure that contains:
-	- an int for task number
+	- an int for sim.task number
 	- a boolean for completion status
-	- a char for client sender
+	- a char for sim.client taskSender
 
 
-### Master Class
+### sim.master.Master Class
 a java server with multiple server sockets. Slaves will connect two some sockets while clients will connect to others
 
 Threadcount: 4
@@ -21,16 +21,16 @@ Threadcount: 4
 - Will have to be synchronized
 
 Send:
-- Clients: an int primitive that indicates which taskID has been complete, the client will flip the completion status of that task to `true` and increment its counter
-- Slaves: the task itself, Task A or Task B
+- Clients: an int primitive that indicates which taskID has been complete, the sim.client will flip the completion status of that sim.task to `true` and increment its counter
+- Slaves: the sim.task itself, Task A or Task B
 
 Receive:
 - Clients: Tasks, after the algo, will send those tasks to designated slaves
-- Slaves: The completed task
+- Slaves: The completed sim.task
 
 
 ### Slave Class
-a java client with a single its own client socket and server socket that its connected to
+a java sim.client with a single its own sim.client socket and server socket that its connected to
 
 Threadcount: 1
 
@@ -42,12 +42,12 @@ Receive:
 
 
 ### Client Class
-A java client will connect directly to the master. This class can be written once and opened up multiple times.
+A java sim.client will connect directly to the master. This class can be written once and opened up multiple times.
 
 Threadcount: 2
 
 ###### Data Structures
-- Array - a single 'task' array of a set size
+- Array - a single 'sim.task' array of a set size
 - int - an int counter that indicates completion progress
 
 
