@@ -29,7 +29,7 @@ public class Master {
         {
             Thread mts = new AssignmentThread(aSocket, bSocket, collectedTasks, isAOccupied, isBOccupied);
             Thread atm = new FeedbackThread(aSocket, completedTasks, isAOccupied);
-            Thread btm = new FeedbackThread(aSocket, completedTasks, isBOccupied);
+            Thread btm = new FeedbackThread(bSocket, completedTasks, isBOccupied);
 
             mts.start();
             atm.start();
