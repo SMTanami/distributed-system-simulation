@@ -13,7 +13,11 @@ import java.net.Socket;
  */
 public class ClientListener extends Thread {
 
-    private ServerSocket host;
+    private final ServerSocket host;
+
+    public ClientListener(ServerSocket host) {
+        this.host = host;
+    }
 
     /**
      * Listens for client sockets as they try to connect. Will immediately create and update the master with a new
@@ -22,25 +26,25 @@ public class ClientListener extends Thread {
     @Override
     public void run() {
 
-            try (Socket incomingClient = host.accept();
-                 DataInputStream dataIn = new DataInputStream(incomingClient.getInputStream()))
-            {
-                int clientID = dataIn.readInt(); // Request clientID upon first connecting with it
-                ClientHandler handler = new ClientHandler(clientID, incomingClient);
-                handler.start();
-                Master.getClients().put(clientID, handler);
+        while (!host.isClosed())
+        {
+            try{
+                // Receive incoming client socket
+                Socket incomingClient = host.accept();
 
+                // Get ClientID from client and close input stream used to do so
+                DataInputStream dataIn = new DataInputStream(incomingClient.getInputStream());
+                int clientID = dataIn.readInt();
+                dataIn.close();
+
+                // Create, store, and start a new ClientHandler
+                ClientHandler handler = new ClientHandler(clientID, incomingClient, Master.getCollectedTasks());
+                Master.getClients().put(clientID, handler);
+                handler.start();
             }
             catch (IOException e) {
                 e.printStackTrace();
             }
-    }
-
-    /**
-     * Sets the server socket that new clients will connect to
-     * @param serverSocket the server socket through which clients will connect
-     */
-    public void setHost(ServerSocket serverSocket) {
-        this.host = serverSocket;
+        }
     }
 }

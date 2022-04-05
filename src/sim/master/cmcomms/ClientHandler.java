@@ -6,8 +6,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;
-import java.util.ArrayDeque;
-import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -23,7 +21,7 @@ public class ClientHandler {
     private final Socket myClientSocket;
     private final TaskCollector myCollector;
     private final TaskConfirmer myConfirmer;
-    private final Queue<Task> collectedTasks = new ArrayDeque<>();
+    private final BlockingQueue<Task> taskQueue;
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
 
     /**
@@ -31,9 +29,10 @@ public class ClientHandler {
      * @param clientID the incoming client's ID
      * @param incomingClient the incoming client's socket
      */
-    public ClientHandler(int clientID, Socket incomingClient) {
+    public ClientHandler(int clientID, Socket incomingClient, BlockingQueue<Task> masterQueue) {
         myClientID = clientID;
         myClientSocket = incomingClient;
+        taskQueue = masterQueue;
         myCollector = new TaskCollector();
         myConfirmer = new TaskConfirmer();
     }
@@ -85,12 +84,13 @@ public class ClientHandler {
         public void run() {
 
             try(ObjectInputStream objIn = new ObjectInputStream(myClientSocket.getInputStream())) {
+
                 Task incomingTask;
                 while ((incomingTask = (Task) objIn.readObject()).getTaskID() != -1)
                 {
-                    collectedTasks.add(incomingTask);
+                    taskQueue.add(incomingTask);
                 }
-                terminate();
+
             }
             catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();

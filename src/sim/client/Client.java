@@ -23,6 +23,7 @@ import java.util.Random;
 public class Client {
 
     private static final Random RANDOM = new Random();
+    private static final Task ENDER_TASK = new TaskA(-1, -1);
 
     /**
      * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link Master} program 3. amount of tasks desired to
