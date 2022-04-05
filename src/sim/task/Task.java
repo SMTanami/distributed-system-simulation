@@ -3,8 +3,8 @@ import java.io.Serializable;
 
 public abstract class Task implements Serializable {
 
-    protected final int clientID;
-    protected final int taskID;
+    private final int clientID;
+    private final int taskID;
     private boolean completionStatus;
 
     public Task(int clientID, int taskID) {
