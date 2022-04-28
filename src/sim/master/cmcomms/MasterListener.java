@@ -46,7 +46,7 @@ public class MasterListener extends Thread {
                 }
 
                 else {
-                    WorkerHandler handler = new WorkerHandler(IDNum, incoming, Master.getCompletedTasks());
+                    WorkerHandler handler = new WorkerHandler(IDNum, incoming);
 
                     if (ID[0].equals("a"))
                         Master.getAWorkers().put(IDNum, handler);
