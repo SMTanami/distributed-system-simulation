@@ -22,6 +22,7 @@ public class SlaveB {
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
         Random r = new Random();
+        final int ID = r.nextInt();
         Task task;
 
         try (Socket socket = new Socket(hostName, portNumber);
@@ -29,7 +30,7 @@ public class SlaveB {
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
-            sendID.println("b " + r.nextInt());
+            sendID.println("b " + ID);
             
             while ((task = (Task) in.readObject()) != null) {
                 System.out.println("Received: " + task);
