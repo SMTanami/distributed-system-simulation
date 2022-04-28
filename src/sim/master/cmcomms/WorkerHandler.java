@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.Queue;
 
 /**
  * This class handles the master's connection with a given worker.
@@ -17,14 +16,12 @@ public class WorkerHandler {
     private boolean isOccupied;
     private boolean isAssigned;
     private Task assignedTask;
-    private final Queue<Task> completedTasks;
 
-    public WorkerHandler(String workerID, Socket socket, Queue<Task> completedTasks) {
+    public WorkerHandler(String workerID, Socket socket) {
         this.workerID = workerID;
         this.socket = socket;
         this.isOccupied = false;
         this.isAssigned = false;
-        this.completedTasks = completedTasks;
     }
 
     public void start() {
@@ -90,7 +87,7 @@ public class WorkerHandler {
 
                 while ((task = (Task) in.readObject()) != null) {
                     setOccupied(false);
-                    completedTasks.add(task);
+                    Master.getCompletedTasks().add(task);
                 }
             }
 
