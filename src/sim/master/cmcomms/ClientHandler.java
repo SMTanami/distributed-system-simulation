@@ -16,7 +16,7 @@ import java.util.concurrent.BlockingQueue;
  */
 public class ClientHandler {
 
-    private final int myClientID;
+    private final String myClientID;
     private boolean isTerminated = false;
     private final Socket myClientSocket;
     private final TaskCollector myCollector;
@@ -29,7 +29,7 @@ public class ClientHandler {
      * @param clientID the incoming client's ID
      * @param incomingClient the incoming client's socket
      */
-    public ClientHandler(int clientID, Socket incomingClient, BlockingQueue<Task> masterQueue) {
+    public ClientHandler(String clientID, Socket incomingClient, BlockingQueue<Task> masterQueue) {
         myClientID = clientID;
         myClientSocket = incomingClient;
         taskQueue = masterQueue;
@@ -49,7 +49,7 @@ public class ClientHandler {
     /**
      * @return this ClientHandler's ClientID
      */
-    public int getClientID() {
+    public String getClientID() {
         return myClientID;
     }
 
