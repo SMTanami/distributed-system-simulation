@@ -16,17 +16,21 @@ public class WorkerHandler {
     private boolean isOccupied;
     private boolean isAssigned;
     private Task assignedTask;
+    private final TaskAssigner taskAssigner;
+    private final Feedback feedback;
 
     public WorkerHandler(String workerID, Socket socket) {
         this.workerID = workerID;
         this.socket = socket;
         this.isOccupied = false;
         this.isAssigned = false;
+        taskAssigner = new TaskAssigner();
+        feedback = new Feedback();
     }
 
     public void start() {
-        TaskAssigner.start();
-        Feedback.start();
+        taskAssigner.start();
+        feedback.start();
     }
 
     public String getWorkerID() {
