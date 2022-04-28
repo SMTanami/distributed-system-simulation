@@ -6,7 +6,9 @@ import sim.task.TaskA;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Random;
 
 public class SlaveA {
 
@@ -19,12 +21,16 @@ public class SlaveA {
 
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
+        Random r = new Random();
         Task task;
 
         try (Socket socket = new Socket(hostName, portNumber);
+             PrintWriter sendID = new PrintWriter(socket.getOutputStream(), true);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-
+            
+            sendID.println("a " + r.nextInt());
+            
             while ((task = (Task) in.readObject()) != null) {
                 System.out.println("Received: " + task);
                 
