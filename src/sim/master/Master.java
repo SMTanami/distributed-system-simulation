@@ -13,7 +13,11 @@ import java.util.concurrent.BlockingQueue;
 public class Master {
 
     private static final Map<Integer, ClientHandler> CLIENTS = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String, WorkerHandler> A_WORKERS = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String, WorkerHandler> B_WORKERS = Collections.synchronizedMap(new HashMap<>());
     private static final BlockingQueue<Task> COLLECTED_TASKS = new ArrayBlockingQueue<>(100);
+    private static final BlockingQueue<Task> COMPLETED_TASKS = new ArrayBlockingQueue<>(100);
+    private static final AssignmentAlgorithm ALGORITHM = new AssignmentAlgorithm(COLLECTED_TASKS, A_WORKERS, B_WORKERS);
 
     /**
      * Initiate the collection of clients and retrival and processing of their tasks
@@ -33,8 +37,10 @@ public class Master {
 
         // Instantiate ServerSocket called host, set the ClientListener's host to it, and start the listener
         try(ServerSocket host = new ServerSocket(portNumber)) {
-            ClientListener listener = new ClientListener(host);
+            MasterListener listener = new MasterListener(host);
             listener.start();
+            
+            // add the assignmentAlgorithm
         }
     }
 
@@ -58,6 +64,16 @@ public class Master {
     public static Map<Integer, ClientHandler> getClients() {
         return CLIENTS;
     }
+    
+    public static Map<String, WorkerHandler> getAWorkers() {
+        return A_WORKERS;
+    }
+
+    public static Map<String, WorkerHandler> getBWorkers() {
+        return B_WORKERS;
+    }
 
     public static BlockingQueue<Task> getCollectedTasks() { return COLLECTED_TASKS; }
+
+    public static BlockingQueue<Task> getCompletedTasks() { return COMPLETED_TASKS; }
 }
