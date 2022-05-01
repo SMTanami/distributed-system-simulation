@@ -84,6 +84,7 @@ public class Master {
     public static WorkerHandler assignWorker(Task task) {
         WorkerHandler[] aArray = getAWorkers().values().toArray(new WorkerHandler[0]);
         WorkerHandler[] bArray = getBWorkers().values().toArray(new WorkerHandler[0]);
+        BlockingQueue<Task> collectedTasks = getCollectedTasks();
 
         if (task.getClass() == TaskA.class) {
             for (WorkerHandler handler : aArray) {
@@ -92,7 +93,7 @@ public class Master {
                 }
             }
 
-            if (getCollectedTasks().size() > 5 * aArray.length && areNextSame(getCollectedTasks(), task, aArray.length)) {
+            if (collectedTasks.size() > 5 * aArray.length && areNextSame(collectedTasks, task, aArray.length)) {
                 for (WorkerHandler handler : bArray) {
                     if (!handler.isOccupied()) {
                         return handler;
@@ -111,7 +112,7 @@ public class Master {
                 }
             }
 
-            if (getCollectedTasks().size() > 5 * bArray.length && areNextSame(getCollectedTasks(), task, bArray.length)) {
+            if (collectedTasks.size() > 5 * bArray.length && areNextSame(collectedTasks, task, bArray.length)) {
                 for (WorkerHandler handler : aArray) {
                     if (!handler.isOccupied()) {
                         return handler;
