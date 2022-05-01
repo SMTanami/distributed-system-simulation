@@ -1,4 +1,5 @@
 package sim.task;
+
 import java.io.Serializable;
 
 public abstract class Task implements Serializable {
