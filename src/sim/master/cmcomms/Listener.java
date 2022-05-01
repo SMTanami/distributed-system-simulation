@@ -1,8 +1,6 @@
-package sim.master.cmcomms;
+package sim.main.cmcomms;
 
-import sim.master.Master;
-
-
+import sim.main.Main;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,7 +11,7 @@ import java.net.Socket;
  * This class will listen for clients and workers that are looking to connect to the given server socket. Upon establishing a connection,
  * a {@link ClientHandler} or a {@link WorkerHandler} will be created and placed within the master's Map of clients or Map of workers.
  */
-public class MasterListener extends Thread {
+public class Listener extends Thread {
 
     private final ServerSocket host;
 
@@ -40,8 +38,8 @@ public class MasterListener extends Thread {
 
                 if (ID[0].equals("c")) {
                     // Create, store, and start a new ClientHandler
-                    ClientHandler handler = new ClientHandler(IDNum, incoming, Master.getCollectedTasks());
-                    Master.getClients().put(IDNum, handler);
+                    ClientHandler handler = new ClientHandler(IDNum, incoming, Main.getCollectedTasks());
+                    Main.getClients().put(IDNum, handler);
                     handler.start();
                 }
 
@@ -49,10 +47,10 @@ public class MasterListener extends Thread {
                     WorkerHandler handler = new WorkerHandler(IDNum, incoming);
 
                     if (ID[0].equals("a"))
-                        Master.getAWorkers().put(IDNum, handler);
+                        Main.getAWorkers().put(IDNum, handler);
 
                     else
-                        Master.getBWorkers().put(IDNum, handler);
+                        Main.getBWorkers().put(IDNum, handler);
 
                     handler.start();
                 }
