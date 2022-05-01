@@ -1,8 +1,7 @@
-package sim.slave;
+package sim.worker;
 
 import sim.task.Task;
 import sim.task.TaskB;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -10,7 +9,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Random;
 
-public class SlaveB {
+public class WorkerB {
 
     public static void main(String[] args) {
 
@@ -21,8 +20,9 @@ public class SlaveB {
 
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
+        
         Random r = new Random();
-        final int ID = r.nextInt();
+        int workerID = r.nextInt();
         Task task;
 
         try (Socket socket = new Socket(hostName, portNumber);
@@ -30,7 +30,7 @@ public class SlaveB {
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
-            sendID.println("b " + ID);
+            sendID.println("b " + workerID);
             
             while ((task = (Task) in.readObject()) != null) {
                 System.out.println("Received: " + task);
