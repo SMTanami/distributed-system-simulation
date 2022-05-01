@@ -1,17 +1,16 @@
-package sim.master;
+package sim.main;
 
 import sim.master.cmcomms.ClientHandler;
 import sim.master.cmcomms.ClientListener;
 import sim.task.Task;
 import sim.task.TaskA;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public class Master {
+public class Main {
 
     private static final Map<Integer, ClientHandler> CLIENTS = Collections.synchronizedMap(new HashMap<>());
     private static final Map<String, WorkerHandler> A_WORKERS = Collections.synchronizedMap(new HashMap<>());
@@ -37,7 +36,7 @@ public class Master {
 
         // Instantiate ServerSocket called host, set the ClientListener's host to it, and start the listener
         try(ServerSocket host = new ServerSocket(portNumber)) {
-            MasterListener listener = new MasterListener(host);
+            Listener listener = new Listener(host);
             listener.start();
             
             Task nextTask;
