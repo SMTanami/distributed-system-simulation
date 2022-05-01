@@ -2,7 +2,6 @@ package sim.worker;
 
 import sim.task.Task;
 import sim.task.TaskA;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
