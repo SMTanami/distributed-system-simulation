@@ -2,13 +2,12 @@ package sim.task;
 
 public class TaskA extends Task {
 
-    public TaskA(int client, int taskNum) {
-        super(client, taskNum);
+    public TaskA(int clientID, int taskID) {
+        super(clientID, taskID);
     }
 
     @Override
     public String toString() {
-        return "TaskA {" + "ClientID = " + getClientID() + ", " +
-                "Task = " + getTaskID() + '}';
+        return "TaskA {" + "Client = " + getClientID() + ", Task = " + getTaskID() + '}';
     }
 }
