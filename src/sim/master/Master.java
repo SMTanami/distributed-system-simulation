@@ -92,7 +92,7 @@ public class Master {
                 }
             }
 
-            if (getCollectedTasks().size() > 5 * aArray.length || areNextSame(getCollectedTasks(), task, aArray.length)) {
+            if (getCollectedTasks().size() > 5 * aArray.length && areNextSame(getCollectedTasks(), task, aArray.length)) {
                 for (WorkerHandler handler : bArray) {
                     if (!handler.isOccupied()) {
                         return handler;
@@ -111,7 +111,7 @@ public class Master {
                 }
             }
 
-            if (getCollectedTasks().size() > 5 * bArray.length || areNextSame(getCollectedTasks(), task, bArray.length)) {
+            if (getCollectedTasks().size() > 5 * bArray.length && areNextSame(getCollectedTasks(), task, bArray.length)) {
                 for (WorkerHandler handler : aArray) {
                     if (!handler.isOccupied()) {
                         return handler;
