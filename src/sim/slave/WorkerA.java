@@ -1,4 +1,4 @@
-package sim.slave;
+package sim.worker;
 
 import sim.task.Task;
 import sim.task.TaskA;
@@ -10,7 +10,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Random;
 
-public class SlaveA {
+public class WorkerA {
 
     public static void main(String[] args) {
 
@@ -21,8 +21,9 @@ public class SlaveA {
 
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
+        
         Random r = new Random();
-        final int ID = r.nextInt();
+        int workerID = r.nextInt();
         Task task;
 
         try (Socket socket = new Socket(hostName, portNumber);
@@ -30,7 +31,7 @@ public class SlaveA {
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
             
-            sendID.println("a " + ID);
+            sendID.println("a " + workerID);
             
             while ((task = (Task) in.readObject()) != null) {
                 System.out.println("Received: " + task);
