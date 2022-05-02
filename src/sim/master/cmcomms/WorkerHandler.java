@@ -1,4 +1,4 @@
-package Master;
+package Main;
 
 import Task.Task;
 import java.io.IOException;
@@ -22,8 +22,8 @@ public class WorkerHandler {
     public WorkerHandler(String workerID, Socket socket) {
         this.workerID = workerID;
         this.socket = socket;
-        this.isOccupied = false;
-        this.isAssigned = false;
+        isOccupied = false;
+        isAssigned = false;
         taskAssigner = new TaskAssigner();
         feedback = new Feedback();
     }
@@ -91,7 +91,7 @@ public class WorkerHandler {
 
                 while ((task = (Task) in.readObject()) != null) {
                     setOccupied(false);
-                    Master.getCompletedTasks().add(task);
+                    Main.getCompletedTasks().add(task);
                 }
             }
 
