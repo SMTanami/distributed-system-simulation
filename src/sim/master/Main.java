@@ -44,6 +44,9 @@ public class Main {
                 WorkerHandler assignedWorker = assignWorker(nextTask);
                 assignedWorker.setTask(nextTask);
             }
+            catch (InterruptedException e) {
+            e.printStackTrace();
+            }
         }
     }
 
