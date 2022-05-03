@@ -15,7 +15,7 @@ public class Listener extends Thread {
 
     private final ServerSocket host;
 
-    public MasterListener(ServerSocket host) {
+    public Listener(ServerSocket host) {
         this.host = host;
     }
 
