@@ -40,7 +40,7 @@ public class Main {
             listener.start();
             
             Task nextTask;
-            while ((nextTask = getCollectedTasks().poll()) != null) {
+            while ((nextTask = getCollectedTasks().take()) != null) {
                 WorkerHandler assignedWorker = assignWorker(nextTask);
                 assignedWorker.setTask(nextTask);
             }
