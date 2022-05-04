@@ -1,14 +1,15 @@
-package sim.slave;
+package sim.worker;
 
 import sim.task.Task;
-import sim.task.TaskA;
-
+import sim.task.TaskB;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Random;
 
-public class SlaveA {
+public class WorkerB {
 
     public static void main(String[] args) {
 
@@ -19,16 +20,22 @@ public class SlaveA {
 
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
+        
+        Random r = new Random();
+        int workerID = r.nextInt();
         Task task;
 
         try (Socket socket = new Socket(hostName, portNumber);
+             PrintWriter sendID = new PrintWriter(socket.getOutputStream(), true);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
+            sendID.println("b " + workerID);
+            
             while ((task = (Task) in.readObject()) != null) {
                 System.out.println("Received: " + task);
                 
-                if (task.getClass() == TaskA.class) {
+                if (task.getClass() == TaskB.class) {
                     Thread.sleep(2000);
                     System.out.println("This sim.task should take 2 seconds.");
                 }
