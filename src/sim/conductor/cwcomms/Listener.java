@@ -1,6 +1,7 @@
-package sim.main.cmcomms;
+package sim.conductor.cwcomms;
 
-import sim.main.Main;
+import sim.conductor.Conductor;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,8 +39,8 @@ public class Listener extends Thread {
 
                 if (ID[0].equals("c")) {
                     // Create, store, and start a new ClientHandler
-                    ClientHandler handler = new ClientHandler(IDNum, incoming, Main.getCollectedTasks());
-                    Main.getClients().put(IDNum, handler);
+                    ClientHandler handler = new ClientHandler(IDNum, incoming, Conductor.getCollectedTasks());
+                    Conductor.getClients().put(IDNum, handler);
                     handler.start();
                 }
 
@@ -47,10 +48,10 @@ public class Listener extends Thread {
                     WorkerHandler handler = new WorkerHandler(IDNum, incoming);
 
                     if (ID[0].equals("a"))
-                        Main.getAWorkers().put(IDNum, handler);
+                        Conductor.getAWorkers().put(IDNum, handler);
 
                     else
-                        Main.getBWorkers().put(IDNum, handler);
+                        Conductor.getBWorkers().put(IDNum, handler);
 
                     handler.start();
                 }

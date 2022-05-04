@@ -1,6 +1,8 @@
-package Main;
+package sim.conductor.cwcomms;
 
-import Task.Task;
+import sim.conductor.Conductor;
+import sim.task.Task;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -91,7 +93,7 @@ public class WorkerHandler {
 
                 while ((task = (Task) in.readObject()) != null) {
                     setOccupied(false);
-                    Main.getCompletedTasks().add(task);
+                    Conductor.getCompletedTasks().add(task);
                 }
             }
 

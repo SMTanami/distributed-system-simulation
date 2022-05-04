@@ -2,7 +2,6 @@ package sim.client.comms;
 
 import sim.client.tracking.Tracker;
 import sim.task.Task;
-import sim.master.Master;
 import sim.task.TaskA;
 
 import java.io.IOException;
@@ -10,7 +9,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
- * This class is used by the Client to send Tasks to a {@link Master} program. It extends {@link Thread}
+ * This class is used by the Client to send Tasks to a {@link sim.conductor.Conductor} program. It extends {@link Thread}
  * and will run concurrently along with this class's counterpart, {@link TaskReceiver}.
  */
 public class TaskSender extends Thread {

@@ -6,7 +6,6 @@ import sim.client.tracking.Tracker;
 import sim.task.Task;
 import sim.task.TaskA;
 import sim.task.TaskB;
-import sim.master.Master;
 
 import java.io.IOException;
 
@@ -26,7 +25,7 @@ public class Client {
     private static final Task ENDER_TASK = new TaskA(-1, -1);
 
     /**
-     * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link Master} program 3. amount of tasks desired to
+     * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link sim.conductor.Conductor} program 3. amount of tasks desired to
      *             be created and executed
      * @throws IOException if the program is interrupted
      */

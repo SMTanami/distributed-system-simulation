@@ -1,7 +1,8 @@
-package sim.main;
+package sim.conductor;
 
-import sim.master.cmcomms.ClientHandler;
-import sim.master.cmcomms.ClientListener;
+import sim.conductor.cwcomms.ClientHandler;
+import sim.conductor.cwcomms.Listener;
+import sim.conductor.cwcomms.WorkerHandler;
 import sim.task.Task;
 import sim.task.TaskA;
 import java.io.IOException;
@@ -10,7 +11,7 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public class Main {
+public class Conductor {
 
     private static final Map<Integer, ClientHandler> CLIENTS = Collections.synchronizedMap(new HashMap<>());
     private static final Map<String, WorkerHandler> A_WORKERS = Collections.synchronizedMap(new HashMap<>());

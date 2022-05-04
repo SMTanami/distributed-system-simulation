@@ -2,14 +2,13 @@ package sim.client.comms;
 
 import sim.client.tracking.Tracker;
 import sim.task.Task;
-import sim.master.Master;
 
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 
 /**
- * This class is used by the Client to receive {@link Task}s from a {@link Master} program. It extends {@link Thread}
+ * This class is used by the Client to receive {@link Task}s from a {@link sim.conductor.Conductor} program. It extends {@link Thread}
  * and will run concurrently along with this class's counterpart, {@link TaskSender}.
  */
 public class TaskReceiver extends Thread {

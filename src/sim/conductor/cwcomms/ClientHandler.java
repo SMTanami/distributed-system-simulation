@@ -1,4 +1,4 @@
-package sim.master.cmcomms;
+package sim.conductor.cwcomms;
 
 import sim.task.Task;
 
