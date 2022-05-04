@@ -11,6 +11,7 @@ import sim.task.TaskB;
 
 import java.io.IOException;
 
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Random;
 
@@ -49,6 +50,7 @@ public class Client implements Component {
 
         // Initialize Socket, Sender/Receiver threads, and Tracker
         Socket clientSocket = new Socket(hostName, portNumber);
+        notifyConductor(clientSocket); // Let the conductor know what is connecting
         Tracker tracker = new Tracker(tasks);
         TaskSender taskSender = new TaskSender(tracker, clientSocket);
         TaskReceiver taskReceiver = new TaskReceiver(tracker, clientSocket);
@@ -63,6 +65,13 @@ public class Client implements Component {
 
         catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void notifyConductor(Socket clientSocket) throws IOException {
+        try (ObjectOutputStream objOut = new ObjectOutputStream(clientSocket.getOutputStream()))
+        {
+            objOut.writeObject(COMPONENT_ID);
         }
     }
 

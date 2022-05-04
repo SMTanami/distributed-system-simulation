@@ -12,11 +12,11 @@ import java.net.Socket;
  * This class will listen for clients and workers that are looking to connect to the given server socket. Upon establishing a connection,
  * a {@link ClientHandler} or a {@link WorkerHandler} will be created and placed within the master's Map of clients or Map of workers.
  */
-public class Listener extends Thread {
+public class ComponentListener extends Thread {
 
     private final ServerSocket host;
 
-    public Listener(ServerSocket host) {
+    public ComponentListener(ServerSocket host) {
         this.host = host;
     }
 

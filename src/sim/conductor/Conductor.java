@@ -1,7 +1,7 @@
 package sim.conductor;
 
 import sim.conductor.cwcomms.ClientHandler;
-import sim.conductor.cwcomms.Listener;
+import sim.conductor.cwcomms.ComponentListener;
 import sim.conductor.cwcomms.WorkerHandler;
 import sim.task.Task;
 import sim.task.TaskA;
@@ -37,7 +37,7 @@ public class Conductor {
 
         // Instantiate ServerSocket called host, set the ClientListener's host to it, and start the listener
         try(ServerSocket host = new ServerSocket(portNumber)) {
-            Listener listener = new Listener(host);
+            ComponentListener listener = new ComponentListener(host);
             listener.start();
             
             Task nextTask;
