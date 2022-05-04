@@ -3,6 +3,8 @@ package sim.client;
 import sim.client.comms.TaskReceiver;
 import sim.client.comms.TaskSender;
 import sim.client.tracking.Tracker;
+import sim.component.Component;
+import sim.component.ComponentID;
 import sim.task.Task;
 import sim.task.TaskA;
 import sim.task.TaskB;
@@ -19,10 +21,11 @@ import java.util.Random;
  * To use this class, start it from the command line by passing in a host name, port number, and the amount of tasks you
  * would like to get done.
  */
-public class Client {
+public class Client implements Component {
 
     private static final Random RANDOM = new Random();
-    private static final Task ENDER_TASK = new TaskA(-1, -1);
+    private static final int ID = RANDOM.nextInt();
+    private static final ComponentID COMPONENT_ID = new ComponentID(this, ID);
 
     /**
      * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link sim.conductor.Conductor} program 3. amount of tasks desired to
@@ -41,11 +44,8 @@ public class Client {
         int portNumber = Integer.parseInt(args[1]);
 
         // Initialize clientID and n tasks, make sure it's not 0
-        int clientID;
-        while ((clientID = RANDOM.nextInt()) == 0)
-            clientID = RANDOM.nextInt();
         int taskAmount = Integer.parseInt(args[2]);
-        Task[] tasks = initializeTasks(taskAmount, clientID);
+        Task[] tasks = initializeTasks(taskAmount, ID);
 
         // Initialize Socket, Sender/Receiver threads, and Tracker
         Socket clientSocket = new Socket(hostName, portNumber);
