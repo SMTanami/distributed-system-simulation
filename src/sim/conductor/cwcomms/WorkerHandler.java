@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
@@ -20,10 +21,10 @@ public class WorkerHandler {
     private final Socket socket;
     private boolean isOccupied;
     private boolean isAssigned;
-    private Task assignedTask;
     private final TaskAssigner taskAssigner;
     private final Feedback feedback;
 
+    private final BlockingQueue<Task> tasksToSend = new ArrayBlockingQueue<>(100);
     private BlockingQueue<Task> completedTaskQueue;
 
     public WorkerHandler(ComponentID workerComponentID, Socket socket) {
@@ -66,7 +67,7 @@ public class WorkerHandler {
     }
 
     public void setTask(Task assignedTask) {
-        this.assignedTask = assignedTask;
+        tasksToSend.add(assignedTask);
         setAssigned(true);
     }
 
@@ -79,15 +80,17 @@ public class WorkerHandler {
 
             try (ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
 
-                while (isAssigned()) {
+                Task taskToSend;
+                while ((taskToSend = tasksToSend.take()) != null) {
                     setOccupied(true);
                     setAssigned(false);
-                    out.writeObject(assignedTask);
+                    out.writeObject(taskToSend);
                 }
             }
 
-            catch (IOException e) {
+            catch (IOException | InterruptedException e) {
                 e.printStackTrace();
+                System.out.println("WorkerHandler interrupted");
             }
         }
     }
@@ -98,6 +101,7 @@ public class WorkerHandler {
 
         @Override
         public void run() {
+
             Task task;
             try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 

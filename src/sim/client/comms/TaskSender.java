@@ -36,6 +36,7 @@ public class TaskSender extends Thread {
             }
 
             //Write a Task to the Master with clientID and taskNum set to 0 to indicate client completion
+            //TODO should be ender task or something to notify conductor of completion
             outStream.writeObject(new TaskA(0, 0));
         }
 

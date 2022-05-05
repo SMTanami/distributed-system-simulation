@@ -1,6 +1,7 @@
 package sim.conductor;
 
 import sim.client.Client;
+import sim.client.comms.TaskReceiver;
 import sim.component.ComponentID;
 import sim.conductor.cwcomms.ClientHandler;
 import sim.conductor.cwcomms.WorkerHandler;
@@ -25,6 +26,33 @@ public class Conductor {
     private final Map<String, WorkerHandler> bWorkerMap = Collections.synchronizedMap(new HashMap<>());
     private final BlockingQueue<Task> collectedTasks = new ArrayBlockingQueue<>(100);
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
+
+    private final Thread taskAssigner = new Thread(() -> {
+        while (true) {
+            try {
+                Task nextTask = collectedTasks.take(); // Blocking call
+                WorkerHandler assignedWorker = assignWorker(nextTask);
+                assignedWorker.setTask(nextTask);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                System.out.println("Conductor was interrupted");
+            }
+        }
+    });
+    private final Thread taskConfirmer = new Thread(() -> {
+        try {
+            Task completedTask;
+            while ((completedTask = completedTasks.take()) != null) {
+                for (ClientHandler clientHandler : cHandlerMap.values()) {
+                    if (completedTask.getClientID() == clientHandler.getClientID())
+                        clientHandler.sendTask(completedTask);
+                }
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            System.out.println("TaskConfirmer was interrupted");
+        }
+    });
 
     public Conductor(ServerSocket serverSocket) {
         this.myServer = serverSocket;
@@ -52,14 +80,15 @@ public class Conductor {
 
                     if (componentID.component() instanceof Client) {
                         ClientHandler clientHandler = new ClientHandler(componentID.refID(), incomingComponentSocket);
-                        clientHandler.setTaskCollection(collectedTasks);
+                        clientHandler.setCollections(collectedTasks);
+                        clientHandler.start();
                     }
 
                     if (componentID.component() instanceof WorkerA) {
                         WorkerHandler workerHandler = new WorkerHandler(componentID, incomingComponentSocket);
                         workerHandler.setCompletedTaskQueue(completedTasks);
+                        workerHandler.start();
                     }
-
 
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
@@ -70,21 +99,8 @@ public class Conductor {
 
     public void begin() {
         componentListener.start();
-        assignTasks();
-    }
-
-    private void assignTasks() {
-
-        while (true) {
-            try {
-                Task nextTask = collectedTasks.take();
-                WorkerHandler assignedWorker = assignWorker(nextTask);
-                assignedWorker.setTask(nextTask);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                System.out.println("Conductor was interrupted");
-            }
-        }
+        taskAssigner.start();
+        taskConfirmer.start();
     }
 
     /**
