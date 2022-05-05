@@ -82,6 +82,11 @@ public class Client implements Component {
 
     public static void main(String[] args) throws IOException {
 
+        if (args.length != 3) {
+            System.out.println("Usage: java Client <host name> <port number> <task amount>");
+            System.exit(1);
+        }
+
         Client c = new Client(new Socket(args[0], Integer.parseInt(args[1])), Integer.parseInt(args[2]));
         c.begin();
 
