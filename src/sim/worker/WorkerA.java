@@ -10,7 +10,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Random;
 
-public class WorkerA implements Component {
+public class WorkerA implements Component, Worker{
 
     private final Socket myWorkerSocket;
     private final ComponentID COMPONENT_ID;

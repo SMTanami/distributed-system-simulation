@@ -1,12 +1,12 @@
 package sim.conductor;
 
 import sim.client.Client;
-import sim.client.comms.TaskReceiver;
 import sim.component.ComponentID;
 import sim.conductor.cwcomms.ClientHandler;
 import sim.conductor.cwcomms.WorkerHandler;
 import sim.task.Task;
 import sim.task.TaskA;
+import sim.worker.Worker;
 import sim.worker.WorkerA;
 
 import java.io.IOException;
@@ -22,8 +22,8 @@ public class Conductor {
     private final ServerSocket myServer;
     private final ComponentListener componentListener = new ComponentListener();
     private final Map<Integer, ClientHandler> cHandlerMap = Collections.synchronizedMap(new HashMap<>());
-    private final Map<String, WorkerHandler> aWorkerMap = Collections.synchronizedMap(new HashMap<>());
-    private final Map<String, WorkerHandler> bWorkerMap = Collections.synchronizedMap(new HashMap<>());
+    private final Map<ComponentID, WorkerHandler> aWorkerMap = Collections.synchronizedMap(new HashMap<>());
+    private final Map<ComponentID, WorkerHandler> bWorkerMap = Collections.synchronizedMap(new HashMap<>());
     private final BlockingQueue<Task> collectedTasks = new ArrayBlockingQueue<>(100);
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
 
@@ -81,12 +81,19 @@ public class Conductor {
                     if (componentID.component() instanceof Client) {
                         ClientHandler clientHandler = new ClientHandler(componentID.refID(), incomingComponentSocket);
                         clientHandler.setCollections(collectedTasks);
+                        cHandlerMap.put(componentID.refID(), clientHandler);
                         clientHandler.start();
                     }
 
-                    if (componentID.component() instanceof WorkerA) {
+                    else {
                         WorkerHandler workerHandler = new WorkerHandler(componentID, incomingComponentSocket);
                         workerHandler.setCompletedTaskQueue(completedTasks);
+
+                        if (componentID.component() instanceof WorkerA)
+                            aWorkerMap.put(componentID, workerHandler);
+
+                        else bWorkerMap.put(componentID, workerHandler);
+
                         workerHandler.start();
                     }
 
@@ -118,26 +125,23 @@ public class Conductor {
     }
     
     private WorkerHandler assignWorker(Task task) {
-        WorkerHandler[] aArray = aWorkerMap.values().toArray(new WorkerHandler[0]);
-        WorkerHandler[] bArray = bWorkerMap.values().toArray(new WorkerHandler[0]);
 
-        if (task.getClass() == TaskA.class) {
-            for (WorkerHandler handler : aArray) {
+        if (task instanceof TaskA) {
+            for (WorkerHandler handler : aWorkerMap.values()) {
                 if (!handler.isOccupied()) {
                     return handler;
                 }
             }
 
-            if (collectedTasks.size() > 5 * aArray.length && areNextSame(collectedTasks, task, aArray.length)) {
-                for (WorkerHandler handler : bArray) {
+            if (collectedTasks.size() > 5 * aWorkerMap.size() && areNextSame(collectedTasks, task, aWorkerMap.size())) {
+                for (WorkerHandler handler : bWorkerMap.values()) {
                     if (!handler.isOccupied()) {
                         return handler;
                     }
                 }
             }
 
-            while (aArray[0].isOccupied());
-            return aArray[0];
+
         }
 
         else {
@@ -158,6 +162,15 @@ public class Conductor {
             while (bArray[0].isOccupied());
             return bArray[0];
         }
+    }
+
+    private WorkerHandler allOccupied() {
+        for (WorkerHandler handler : aWorkerMap.values()) {
+            if (!handler.isOccupied())
+                return handler;
+        }
+
+        return null;
     }
 
     private boolean areNextSame(BlockingQueue<Task> taskQueue, Task task, int length) {

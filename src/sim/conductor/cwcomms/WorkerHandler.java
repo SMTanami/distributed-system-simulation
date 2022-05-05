@@ -1,7 +1,6 @@
 package sim.conductor.cwcomms;
 
 import sim.component.ComponentID;
-import sim.conductor.Conductor;
 import sim.task.Task;
 
 import java.io.IOException;
@@ -46,7 +45,7 @@ public class WorkerHandler {
         this.completedTaskQueue = conductorsCompletedTaskQueue;
     }
 
-    public ComponentID getWorkerRefID() {
+    public ComponentID getComponentID() {
         return workerComponentID;
     }
 
