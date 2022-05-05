@@ -1,12 +1,20 @@
 package sim.conductor;
 
+import sim.client.Client;
+import sim.component.ComponentID;
 import sim.conductor.cwcomms.ClientHandler;
 import sim.conductor.cwcomms.ComponentListener;
 import sim.conductor.cwcomms.WorkerHandler;
 import sim.task.Task;
 import sim.task.TaskA;
+import sim.worker.WorkerA;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -24,6 +32,39 @@ public class Conductor {
     public Conductor(ServerSocket serverSocket) {
         this.myServer = serverSocket;
         this.componentListener = new ComponentListener(myServer);
+    }
+
+    /**
+     * This class will listen for clients and workers that are looking to connect to the given server socket. Upon establishing a connection,
+     * a {@link ClientHandler} or a {@link WorkerHandler} will be created and placed within the master's Map of clients or Map of workers.
+     */
+    private class ComponentListener extends Thread {
+
+        /**
+         * Listens for client sockets as they try to connect. Will immediately create and update the master with a new
+         * {@link ClientHandler} to handle connection between the master and the newly connected client.
+         */
+        @Override
+        public void run() {
+
+            while (!myServer.isClosed())
+            {
+                try {
+                    Socket incomingComponent = myServer.accept();
+                    ObjectInputStream objIn = new ObjectInputStream(incomingComponent.getInputStream());
+                    ComponentID componentID = (ComponentID) objIn.readObject();
+
+                    if (componentID.component() instanceof Client) {
+                        ClientHandler clientHandler = new ClientHandler(componentID.refID(), incomingComponent);
+                        clientHandler.setTaskCollection(collectedTasks);
+                    }
+
+                    if (componentID.component() instanceof WorkerA)
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public void begin() {

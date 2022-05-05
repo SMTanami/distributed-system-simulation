@@ -1,5 +1,6 @@
 package sim.conductor.cwcomms;
 
+import sim.conductor.Conductor;
 import sim.task.Task;
 
 import java.io.DataOutputStream;
@@ -16,23 +17,23 @@ import java.util.concurrent.BlockingQueue;
  */
 public class ClientHandler {
 
-    private final String myClientID;
-    private boolean isTerminated = false;
+    private final int myClientRefID;
     private final Socket myClientSocket;
     private final TaskCollector myCollector;
     private final TaskConfirmer myConfirmer;
-    private final BlockingQueue<Task> taskQueue;
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
+
+    private BlockingQueue<Task> taskCollection;
+    private boolean isTerminated = false;
 
     /**
      * Returns a ClientHandler to handle master-client communication
      * @param clientID the incoming client's ID
      * @param incomingClient the incoming client's socket
      */
-    public ClientHandler(String clientID, Socket incomingClient, BlockingQueue<Task> masterQueue) {
-        myClientID = clientID;
+    public ClientHandler(int clientID, Socket incomingClient) {
+        myClientRefID = clientID;
         myClientSocket = incomingClient;
-        taskQueue = masterQueue;
         myCollector = new TaskCollector();
         myConfirmer = new TaskConfirmer();
     }
@@ -42,15 +43,23 @@ public class ClientHandler {
      * tasks back to it.
      */
     public void start() {
+
+        if (taskCollection == null)
+            throw new RuntimeException("Cannot start handler without setting task collection...");
+
         myCollector.start();
         myConfirmer.start();
+    }
+
+    public void setTaskCollection(BlockingQueue<Task> taskCollection) {
+        this.taskCollection = taskCollection;
     }
 
     /**
      * @return this ClientHandler's ClientID
      */
-    public String getClientID() {
-        return myClientID;
+    public int getClientID() {
+        return myClientRefID;
     }
 
     /**
@@ -88,7 +97,7 @@ public class ClientHandler {
                 Task incomingTask;
                 while ((incomingTask = (Task) objIn.readObject()).getTaskID() != -1)
                 {
-                    taskQueue.add(incomingTask);
+                    taskCollection.add(incomingTask);
                 }
 
             }

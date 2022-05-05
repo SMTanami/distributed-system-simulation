@@ -32,14 +32,14 @@ public class ComponentListener extends Thread {
 
         while (!host.isClosed())
         {
-
             try {
                 Socket incomingComponent = host.accept();
                 ObjectInputStream objIn = new ObjectInputStream(incomingComponent.getInputStream());
                 ComponentID componentID = (ComponentID) objIn.readObject();
 
                 if (componentID.component() instanceof Client) {
-
+                    ClientHandler clientHandler = new ClientHandler(componentID.refID(), incomingComponent);
+                    clientHandler.setTaskCollection();
                 }
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
