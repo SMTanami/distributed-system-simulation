@@ -32,11 +32,10 @@ public class WorkerB implements Component {
         }
     }
 
-    private void work(Task task) {
-        try (Socket socket = new Socket(hostName, portNumber);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+    private void work(ObjectInputStream in, ObjectOutputStream out) {
+        Task task;
 
+        try {
             while ((task = (Task) in.readObject()) != null) {
                 System.out.println("Received: " + task);
 
@@ -55,19 +54,8 @@ public class WorkerB implements Component {
             }
         }
 
-        catch (IOException e) {
-            System.err.println("Couldn't get I/O for the connection to " + hostName);
-            System.exit(1);
-        }
-
-        catch (InterruptedException e) {
-            System.err.println("Thread was interrupted while asleep.");
-            System.exit(1);
-        }
-
-        catch (ClassNotFoundException e) {
-            System.err.println("Couldn't find the object's class.");
-            System.exit(1);
+        catch (InterruptedException | IOException | ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
@@ -81,7 +69,13 @@ public class WorkerB implements Component {
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
 
-        WorkerB b = new WorkerB(new Socket(hostName, portNumber));
-        b.notifyConductor();
+        try(Socket socket = new Socket(hostName, portNumber);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+
+            WorkerB b = new WorkerB(socket);
+            b.notifyConductor();
+            b.work(in, out);
+        }
     }
 }
