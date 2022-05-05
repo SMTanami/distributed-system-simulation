@@ -23,6 +23,7 @@ public class WorkerA implements Component {
 
     @Override
     public void notifyConductor() {
+
         try (ObjectOutputStream objOut = new ObjectOutputStream(myWorkerSocket.getOutputStream())) {
             objOut.writeObject(COMPONENT_ID);
         }

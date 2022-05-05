@@ -3,15 +3,12 @@ package sim.conductor;
 import sim.client.Client;
 import sim.component.ComponentID;
 import sim.conductor.cwcomms.ClientHandler;
-import sim.conductor.cwcomms.ComponentListener;
 import sim.conductor.cwcomms.WorkerHandler;
 import sim.task.Task;
 import sim.task.TaskA;
 import sim.worker.WorkerA;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,7 +19,7 @@ import java.util.concurrent.BlockingQueue;
 public class Conductor {
 
     private final ServerSocket myServer;
-    private final ComponentListener componentListener;
+    private final ComponentListener componentListener = new ComponentListener();
     private final Map<Integer, ClientHandler> cHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private final Map<String, WorkerHandler> aWorkerMap = Collections.synchronizedMap(new HashMap<>());
     private final Map<String, WorkerHandler> bWorkerMap = Collections.synchronizedMap(new HashMap<>());
@@ -31,7 +28,6 @@ public class Conductor {
 
     public Conductor(ServerSocket serverSocket) {
         this.myServer = serverSocket;
-        this.componentListener = new ComponentListener(myServer);
     }
 
     /**
@@ -50,16 +46,21 @@ public class Conductor {
             while (!myServer.isClosed())
             {
                 try {
-                    Socket incomingComponent = myServer.accept();
-                    ObjectInputStream objIn = new ObjectInputStream(incomingComponent.getInputStream());
+                    Socket incomingComponentSocket = myServer.accept();
+                    ObjectInputStream objIn = new ObjectInputStream(incomingComponentSocket.getInputStream());
                     ComponentID componentID = (ComponentID) objIn.readObject();
 
                     if (componentID.component() instanceof Client) {
-                        ClientHandler clientHandler = new ClientHandler(componentID.refID(), incomingComponent);
+                        ClientHandler clientHandler = new ClientHandler(componentID.refID(), incomingComponentSocket);
                         clientHandler.setTaskCollection(collectedTasks);
                     }
 
-                    if (componentID.component() instanceof WorkerA)
+                    if (componentID.component() instanceof WorkerA) {
+                        WorkerHandler workerHandler = new WorkerHandler(componentID, incomingComponentSocket);
+                        workerHandler.setCompletedTaskQueue(completedTasks);
+                    }
+
+
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -76,7 +77,7 @@ public class Conductor {
 
         while (true) {
             try {
-                Task nextTask = getCollectedTasks().take();
+                Task nextTask = collectedTasks.take();
                 WorkerHandler assignedWorker = assignWorker(nextTask);
                 assignedWorker.setTask(nextTask);
             } catch (InterruptedException e) {
@@ -99,30 +100,10 @@ public class Conductor {
             }
         }
     }
-
-    /**
-     * @return this Masters map of Client's ({@link ClientHandler}s)
-     */
-    public Map<Integer, ClientHandler> getClients() {
-        return cHandlerMap;
-    }
-    
-    public Map<String, WorkerHandler> getAWorkers() {
-        return aWorkerMap;
-    }
-
-    public Map<String, WorkerHandler> getBWorkers() {
-        return bWorkerMap;
-    }
-
-    public BlockingQueue<Task> getCollectedTasks() { return collectedTasks; }
-
-    public BlockingQueue<Task> getCompletedTasks() { return completedTasks; }
     
     private WorkerHandler assignWorker(Task task) {
-        WorkerHandler[] aArray = getAWorkers().values().toArray(new WorkerHandler[0]);
-        WorkerHandler[] bArray = getBWorkers().values().toArray(new WorkerHandler[0]);
-        BlockingQueue<Task> collectedTasks = getCollectedTasks();
+        WorkerHandler[] aArray = aWorkerMap.values().toArray(new WorkerHandler[0]);
+        WorkerHandler[] bArray = bWorkerMap.values().toArray(new WorkerHandler[0]);
 
         if (task.getClass() == TaskA.class) {
             for (WorkerHandler handler : aArray) {

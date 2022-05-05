@@ -1,5 +1,6 @@
 package sim.conductor.cwcomms;
 
+import sim.component.ComponentID;
 import sim.conductor.Conductor;
 import sim.task.Task;
 
@@ -7,13 +8,15 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * This class handles the master's connection with a given worker.
  */
 
 public class WorkerHandler {
-    private final String workerID;
+
+    private final ComponentID workerComponentID;
     private final Socket socket;
     private boolean isOccupied;
     private boolean isAssigned;
@@ -21,8 +24,11 @@ public class WorkerHandler {
     private final TaskAssigner taskAssigner;
     private final Feedback feedback;
 
-    public WorkerHandler(String workerID, Socket socket) {
-        this.workerID = workerID;
+    private BlockingQueue<Task> completedTaskQueue;
+
+    public WorkerHandler(ComponentID workerComponentID, Socket socket) {
+
+        this.workerComponentID = workerComponentID;
         this.socket = socket;
         isOccupied = false;
         isAssigned = false;
@@ -35,8 +41,12 @@ public class WorkerHandler {
         feedback.start();
     }
 
-    public String getWorkerID() {
-        return workerID;
+    public void setCompletedTaskQueue(BlockingQueue<Task> conductorsCompletedTaskQueue) {
+        this.completedTaskQueue = conductorsCompletedTaskQueue;
+    }
+
+    public ComponentID getWorkerRefID() {
+        return workerComponentID;
     }
 
     public boolean isOccupied() {
@@ -93,7 +103,7 @@ public class WorkerHandler {
 
                 while ((task = (Task) in.readObject()) != null) {
                     setOccupied(false);
-                    Conductor.getCompletedTasks().add(task);
+                    completedTaskQueue.add(task);
                 }
             }
 
