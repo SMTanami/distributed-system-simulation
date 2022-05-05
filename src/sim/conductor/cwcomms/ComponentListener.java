@@ -38,7 +38,7 @@ public class ComponentListener extends Thread {
                 ObjectInputStream objIn = new ObjectInputStream(incomingComponent.getInputStream());
                 ComponentID componentID = (ComponentID) objIn.readObject();
 
-                if (componentID.componentType() instanceof Client) {
+                if (componentID.component() instanceof Client) {
 
                 }
             } catch (IOException | ClassNotFoundException e) {
@@ -55,7 +55,7 @@ public class ComponentListener extends Thread {
                 if (ID[0].equals("c")) {
                     // Create, store, and start a new ClientHandler
                     ClientHandler handler = new ClientHandler(IDNum, incoming, Conductor.getCollectedTasks());
-                    Conductor.getClients().put(IDNum, handler);
+                    Conductor.getClients().put(Integer.valueOf(IDNum), handler);
                     handler.start();
                 }
 

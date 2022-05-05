@@ -12,6 +12,7 @@ import sim.task.TaskB;
 import java.io.IOException;
 
 import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Random;
 
@@ -24,57 +25,48 @@ import java.util.Random;
  */
 public class Client implements Component {
 
-    private static final Random RANDOM = new Random();
-    private static final int ID = RANDOM.nextInt();
-    private static final ComponentID COMPONENT_ID = new ComponentID(Client.class, ID);
+    private final Tracker taskTracker;
+    private final TaskSender sender;
+    private final TaskReceiver receiver;
+    private final Random RANDOM = new Random();
+    private final int ID = RANDOM.nextInt();
+    private final ComponentID COMPONENT_ID = new ComponentID(this, ID);
 
-    /**
-     * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link sim.conductor.Conductor} program 3. amount of tasks desired to
-     *             be created and executed
-     * @throws IOException if the program is interrupted
-     */
-    public static void main(String[] args) throws IOException {
-
+    public Client(Socket clientSocket, int taskAmt) {
         System.out.println(COMPONENT_ID);
-        System.exit(1);
-        if (args.length != 3) {
-            System.out.println("Usage: java Client <host name> <port number> <sim.task amount>");
-            System.exit(1);
-        }
+        notifyConductor(clientSocket);
+        taskTracker = new Tracker(initializeTasks(taskAmt));
+        sender = new TaskSender(taskTracker, clientSocket);
+        receiver = new TaskReceiver(taskTracker, clientSocket);
 
-        // Get necessary information to connect to sim.master.Master
-        String hostName = args[0];
-        int portNumber = Integer.parseInt(args[1]);
-
-        // Initialize clientID and n tasks, make sure it's not 0
-        int taskAmount = Integer.parseInt(args[2]);
-        Task[] tasks = initializeTasks(taskAmount, ID);
-
-        // Initialize Socket, Sender/Receiver threads, and Tracker
-        Socket clientSocket = new Socket(hostName, portNumber);
-        notifyConductor(clientSocket); // Let the conductor know what is connecting
-        Tracker tracker = new Tracker(tasks);
-        TaskSender taskSender = new TaskSender(tracker, clientSocket);
-        TaskReceiver taskReceiver = new TaskReceiver(tracker, clientSocket);
-
-        taskSender.start();
-        taskReceiver.start();
-
-        try {
-            taskSender.join();
-            taskReceiver.join();
-        }
-
-        catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        sender.start();
+        receiver.start();
     }
 
-    private static void notifyConductor(Socket clientSocket) throws IOException {
-        try (ObjectOutputStream objOut = new ObjectOutputStream(clientSocket.getOutputStream()))
-        {
+    public static void main(String[] args) throws IOException {
+        String hostName = "127.0.0.1";
+        String portNum = "12345";
+        String taskAmt = "5";
+
+        //Client c = new Client(new Socket(args[0], Integer.parseInt(args[1])), Integer.parseInt(args[2]));
+        ServerSocket server = new ServerSocket(12345);
+        Client c = new Client(new Socket(hostName, Integer.parseInt(portNum)), Integer.parseInt(taskAmt));
+        server.close();
+        System.out.println(c.COMPONENT_ID);
+        System.out.println("Component: " + c.COMPONENT_ID.component() + "\nrefID: " + c.COMPONENT_ID.refID());
+    }
+
+
+    private void notifyConductor(Socket clientSocket) {
+
+        try (ObjectOutputStream objOut = new ObjectOutputStream(clientSocket.getOutputStream())) {
             objOut.writeObject(COMPONENT_ID);
         }
+        catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Could not send component ID to conductor");
+        }
+
     }
 
     /**
@@ -82,15 +74,15 @@ public class Client implements Component {
      * @param clientID the clientID that will be used to identify sim.task's parent-sim.client in other programs
      * @return an array of Tasks that contains as many tasks as specified via 'taskAmount'
      */
-    private static Task[] initializeTasks(int taskAmount, int clientID)
+    private Task[] initializeTasks(int taskAmount)
     {
         Task[] tasks = new Task[taskAmount];
         for (int i = 0; i < taskAmount; i++) {
 
             if (RANDOM.nextDouble() > 0.50)
-                tasks[i] = new TaskA(clientID, i);
+                tasks[i] = new TaskA(ID, i);
 
-            else tasks[i] = new TaskB(clientID, i);
+            else tasks[i] = new TaskB(ID, i);
 
         }
 
