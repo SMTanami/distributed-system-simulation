@@ -1,3 +1,3 @@
 package sim.component;
 
-public record ComponentID(Component componentType, int ID) { }
+public record ComponentID(Class<Component> componentClass, int ID) {}

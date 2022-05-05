@@ -26,7 +26,7 @@ public class Client implements Component {
 
     private static final Random RANDOM = new Random();
     private static final int ID = RANDOM.nextInt();
-    private static final ComponentID COMPONENT_ID = new ComponentID(this, ID);
+    private static final ComponentID COMPONENT_ID = new ComponentID(Client.class, ID);
 
     /**
      * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link sim.conductor.Conductor} program 3. amount of tasks desired to
@@ -35,6 +35,8 @@ public class Client implements Component {
      */
     public static void main(String[] args) throws IOException {
 
+        System.out.println(COMPONENT_ID);
+        System.exit(1);
         if (args.length != 3) {
             System.out.println("Usage: java Client <host name> <port number> <sim.task amount>");
             System.exit(1);

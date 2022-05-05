@@ -1,10 +1,13 @@
 package sim.conductor.cwcomms;
 
+import sim.client.Client;
+import sim.component.ComponentID;
 import sim.conductor.Conductor;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -29,6 +32,18 @@ public class ComponentListener extends Thread {
 
         while (!host.isClosed())
         {
+
+            try {
+                Socket incomingComponent = host.accept();
+                ObjectInputStream objIn = new ObjectInputStream(incomingComponent.getInputStream());
+                ComponentID componentID = (ComponentID) objIn.readObject();
+
+                if (componentID.componentType() instanceof Client) {
+
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
             try{
                 // Receive incoming client socket
                 Socket incoming = host.accept();
