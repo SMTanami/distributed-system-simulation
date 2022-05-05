@@ -12,7 +12,6 @@ import sim.task.TaskB;
 import java.io.IOException;
 
 import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Random;
 
@@ -25,6 +24,7 @@ import java.util.Random;
  */
 public class Client implements Component {
 
+    private final Socket myClientSocket;
     private final Tracker taskTracker;
     private final TaskSender sender;
     private final TaskReceiver receiver;
@@ -33,40 +33,18 @@ public class Client implements Component {
     private final ComponentID COMPONENT_ID = new ComponentID(this, ID);
 
     public Client(Socket clientSocket, int taskAmt) {
-        System.out.println(COMPONENT_ID);
-        notifyConductor(clientSocket);
+
+        myClientSocket = clientSocket;
         taskTracker = new Tracker(initializeTasks(taskAmt));
         sender = new TaskSender(taskTracker, clientSocket);
         receiver = new TaskReceiver(taskTracker, clientSocket);
+    }
 
+    public void begin() {
+
+        notifyConductor();
         sender.start();
         receiver.start();
-    }
-
-    public static void main(String[] args) throws IOException {
-        String hostName = "127.0.0.1";
-        String portNum = "12345";
-        String taskAmt = "5";
-
-        //Client c = new Client(new Socket(args[0], Integer.parseInt(args[1])), Integer.parseInt(args[2]));
-        ServerSocket server = new ServerSocket(12345);
-        Client c = new Client(new Socket(hostName, Integer.parseInt(portNum)), Integer.parseInt(taskAmt));
-        server.close();
-        System.out.println(c.COMPONENT_ID);
-        System.out.println("Component: " + c.COMPONENT_ID.component() + "\nrefID: " + c.COMPONENT_ID.refID());
-    }
-
-
-    private void notifyConductor(Socket clientSocket) {
-
-        try (ObjectOutputStream objOut = new ObjectOutputStream(clientSocket.getOutputStream())) {
-            objOut.writeObject(COMPONENT_ID);
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Could not send component ID to conductor");
-        }
-
     }
 
     /**
@@ -87,6 +65,26 @@ public class Client implements Component {
         }
 
         return tasks;
+    }
+
+    @Override
+    public void notifyConductor() {
+
+        try (ObjectOutputStream objOut = new ObjectOutputStream(myClientSocket.getOutputStream())) {
+            objOut.writeObject(COMPONENT_ID);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Could not send component ID to conductor");
+        }
+
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        Client c = new Client(new Socket(args[0], Integer.parseInt(args[1])), Integer.parseInt(args[2]));
+        c.begin();
+
     }
 }
 

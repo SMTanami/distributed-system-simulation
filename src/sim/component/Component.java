@@ -1,3 +1,7 @@
 package sim.component;
 
-public interface Component {}
+public interface Component {
+
+    void notifyConductor();
+
+}
