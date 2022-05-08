@@ -1,7 +1,5 @@
 package sim.client;
 
-import sim.client.comms.TaskReceiver;
-import sim.client.comms.TaskSender;
 import sim.client.tracking.Tracker;
 import sim.component.Component;
 import sim.component.ComponentID;
@@ -9,11 +7,14 @@ import sim.task.Task;
 import sim.task.TaskA;
 import sim.task.TaskB;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Random;
+
+import static sim.component.COMPONENT_TYPE.CLIENT;
 
 /**
  * This class acts as a Client in a distributed system. It initializes tasks and utilizes multithreading to send and
@@ -24,32 +25,49 @@ import java.util.Random;
  */
 public class Client implements Component {
 
-    private final Socket myClientSocket;
+    private ObjectOutputStream objOut;
+    private DataInputStream dataIn;
     private final Tracker taskTracker;
-    private final TaskSender sender;
-    private final TaskReceiver receiver;
+    private final TaskSender sender = new TaskSender();
+    private final TaskReceiver receiver = new TaskReceiver();
     private final Random RANDOM = new Random();
     private final int ID = RANDOM.nextInt();
-    private final ComponentID COMPONENT_ID = new ComponentID(this, ID);
+    private final ComponentID COMPONENT_ID = new ComponentID(CLIENT, ID);
+    private final TaskA enderTask = new TaskA(ID, -1);
 
     public Client(Socket clientSocket, int taskAmt) {
-
-        myClientSocket = clientSocket;
+        try {
+            objOut = new ObjectOutputStream(clientSocket.getOutputStream());
+            dataIn = new DataInputStream(clientSocket.getInputStream());
+        } catch (IOException e){
+            e.printStackTrace();
+        }
         taskTracker = new Tracker(initializeTasks(taskAmt));
-        sender = new TaskSender(taskTracker, clientSocket);
-        receiver = new TaskReceiver(taskTracker, clientSocket);
     }
 
-    public void begin() {
-
+    public void begin() throws InterruptedException {
         notifyConductor();
         sender.start();
         receiver.start();
+
+        sender.join();
+        receiver.join();
+    }
+
+    private void terminate() {
+        System.out.println("CLIENT: Received all tasks, ending communciation with conductor...");
+
+        try {
+            objOut.writeObject(enderTask);
+            objOut.close();
+            dataIn.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
      * @param taskAmount amount of tasks to generate and initialize
-     * @param clientID the clientID that will be used to identify sim.task's parent-sim.client in other programs
      * @return an array of Tasks that contains as many tasks as specified via 'taskAmount'
      */
     private Task[] initializeTasks(int taskAmount)
@@ -69,18 +87,59 @@ public class Client implements Component {
 
     @Override
     public void notifyConductor() {
-
-        try (ObjectOutputStream objOut = new ObjectOutputStream(myClientSocket.getOutputStream())) {
+        try {
             objOut.writeObject(COMPONENT_ID);
+        } catch (IOException e)
+        {
+            throw new RuntimeException(e);
         }
-        catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Could not send component ID to conductor");
-        }
-
     }
 
-    public static void main(String[] args) throws IOException {
+    /**
+     * This class is used by the Client to send Tasks to a {@link sim.conductor.Conductor} program. It extends {@link Thread}
+     * and will run concurrently along with this class's counterpart, {@link TaskReceiver}.
+     */
+    private class TaskSender extends Thread {
+        @Override public void run() {
+
+            try {
+                Task t;
+                while ((t = taskTracker.take()) != null) {
+                    objOut.writeObject(t);
+                    System.out.println("CLIENT: SENT TASK " + t);
+                }
+            }
+
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * This class is used by the Client to receive {@link Task}s from a {@link sim.conductor.Conductor} program. It extends {@link Thread}
+     * and will run concurrently along with this class's counterpart, {@link TaskSender}.
+     */
+    private class TaskReceiver extends Thread {
+        @Override public void run() {
+
+            try {
+                while (!taskTracker.isSatisfied()) {
+                    taskTracker.give(dataIn.readInt()); // Blocking call
+                }
+
+                terminate();
+            }
+
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
 
         if (args.length != 3) {
             System.out.println("Usage: java Client <host name> <port number> <task amount>");
@@ -89,7 +148,6 @@ public class Client implements Component {
 
         Client c = new Client(new Socket(args[0], Integer.parseInt(args[1])), Integer.parseInt(args[2]));
         c.begin();
-
     }
 }
 

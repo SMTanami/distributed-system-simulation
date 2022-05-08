@@ -1,3 +1,5 @@
 package sim.component;
 
-public record ComponentID(Component component, int refID) {}
+import java.io.Serializable;
+
+public record ComponentID(COMPONENT_TYPE component_type, int refID) implements Serializable {}

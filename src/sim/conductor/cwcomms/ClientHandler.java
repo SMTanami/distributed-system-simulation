@@ -2,9 +2,7 @@ package sim.conductor.cwcomms;
 
 import sim.task.Task;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -17,22 +15,19 @@ import java.util.concurrent.BlockingQueue;
 public class ClientHandler {
 
     private final int myClientRefID;
-    private final Socket myClientSocket;
-    private final TaskCollector myCollector = new TaskCollector();
+    private final ObjectInputStream objIn;
+    private final DataOutputStream dataOut;
     private final TaskConfirmer myConfirmer = new TaskConfirmer();
+    private final TaskCollector myCollector = new TaskCollector();
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
 
     private BlockingQueue<Task> collectedTasks;
     private boolean isTerminated = false;
 
-    /**
-     * Returns a ClientHandler to handle master-client communication
-     * @param clientID the incoming client's ID
-     * @param incomingClient the incoming client's socket
-     */
-    public ClientHandler(int clientID, Socket incomingClient) {
-        myClientRefID = clientID;
-        myClientSocket = incomingClient;
+    public ClientHandler(int clientID, ObjectInputStream objIn, DataOutputStream dataOut) {
+        this.myClientRefID = clientID;
+        this.objIn = objIn;
+        this.dataOut = dataOut;
     }
 
     /**
@@ -40,12 +35,11 @@ public class ClientHandler {
      * tasks back to it.
      */
     public void start() {
-
         if (collectedTasks == null)
             throw new RuntimeException("Cannot start handler without setting task collection...");
 
-        myCollector.start();
         myConfirmer.start();
+        myCollector.start();
     }
 
     public void sendTask(Task completedTask) {
@@ -77,7 +71,7 @@ public class ClientHandler {
      * @throws IOException
      */
     private void terminate() throws IOException {
-        myClientSocket.close();
+        //myClientSocket.close();
         isTerminated = true;
     }
 
@@ -93,18 +87,17 @@ public class ClientHandler {
          */
         @Override
         public void run() {
-
-            try(ObjectInputStream objIn = new ObjectInputStream(myClientSocket.getInputStream())) {
-
+            System.out.println("Collector Started");
+            try {
                 Task incomingTask;
-                while ((incomingTask = (Task) objIn.readObject()).getTaskID() != -1)
-                {
+                while ((incomingTask = (Task) objIn.readObject()).getTaskID() != -1) {
                     collectedTasks.add(incomingTask);
+                    System.out.println("CONDUCTOR: RECEIVED TASK " + incomingTask);
                 }
-
             }
             catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
+                System.exit(1);
             }
         }
     }
@@ -122,12 +115,12 @@ public class ClientHandler {
          */
         @Override
         public void run() {
-
-            try (DataOutputStream dataOut = new DataOutputStream(myClientSocket.getOutputStream()))
-            {
+            System.out.println("Confirmer Started");
+            try {
                 Task completedTask;
                 while ((completedTask = completedTasks.take()) != null) {
                     dataOut.writeInt(completedTask.getTaskID());
+                    System.out.println("CONDUCTOR: Confirmed " + completedTask + " with client");
                 }
 
             } catch (IOException | InterruptedException e) {

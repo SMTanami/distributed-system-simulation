@@ -33,7 +33,7 @@ public class Tracker {
      */
     public synchronized Task take() {
 
-        if (takePoint > tasks.length)
+        if (takePoint >= tasks.length)
             return null;
 
         else{

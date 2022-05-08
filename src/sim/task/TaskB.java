@@ -1,6 +1,8 @@
 package sim.task;
 
-public class TaskB extends Task {
+import java.io.Serializable;
+
+public class TaskB extends Task implements Serializable {
 
     public TaskB(int clientID, int taskID) {
         super(clientID, taskID);

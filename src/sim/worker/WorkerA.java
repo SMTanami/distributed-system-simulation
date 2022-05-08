@@ -7,50 +7,53 @@ import sim.component.ComponentID;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.Socket;
 import java.util.Random;
 
-public class WorkerA implements Component, Worker{
+import static sim.component.COMPONENT_TYPE.AWORKER;
 
-    private final Socket myWorkerSocket;
+public class WorkerA implements Component, Worker {
+
+    private transient final Socket myWorkerSocket;
+    private transient ObjectOutputStream objOut;
     private final ComponentID COMPONENT_ID;
 
     public WorkerA(Socket workerSocket) {
         myWorkerSocket = workerSocket;
-        Random RANDOM = new Random();
-        COMPONENT_ID = new ComponentID(this, RANDOM.nextInt());
+        COMPONENT_ID = new ComponentID(AWORKER, new Random().nextInt());
+        initializeStreams();
     }
 
-    @Override
-    public void notifyConductor() {
-        try (ObjectOutputStream objOut = new ObjectOutputStream(myWorkerSocket.getOutputStream())) {
-            objOut.writeObject(COMPONENT_ID);
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Could not send component ID to conductor");
-        }
-    }
-
-    private void work(ObjectInputStream in, ObjectOutputStream out) {
-        Task task;
-
+    private void initializeStreams() {
         try {
-            while ((task = (Task) in.readObject()) != null) {
-                System.out.println("Received: " + task);
+            objOut = new ObjectOutputStream(myWorkerSocket.getOutputStream());
+        } catch (IOException e) {
+            System.out.println("WorkerA: Could not instantiate streams");
+        }
+    }
+
+    public void begin() {
+
+        notifyConductor();
+        try(ObjectInputStream objIn = new ObjectInputStream(myWorkerSocket.getInputStream()))
+        {
+            Task task;
+            while ((task = (Task) objIn.readObject()) != null) {
+                System.out.println(COMPONENT_ID + ": received " + task);
 
                 if (task.getClass() == TaskA.class) {
                     Thread.sleep(2000);
-                    System.out.println("This task should take 2 seconds.");
+                    System.out.println(COMPONENT_ID.component_type() + "This task should take 2 seconds.");
                 }
 
                 else {
-                    Thread.sleep(10000);
-                    System.out.println("This task should take 10 seconds.");
+                    Thread.sleep(3000);
+                    System.out.println("This task should take 3 seconds.");
                 }
 
                 System.out.println("Completed: " + task);
-                out.writeObject(task);
+                objOut.writeObject(task);
             }
         }
 
@@ -59,23 +62,28 @@ public class WorkerA implements Component, Worker{
         }
     }
 
+    @Override
+    public void notifyConductor() {
+        try {
+            objOut.writeObject(COMPONENT_ID);
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("WorkerA: Could not send component ID to conductor");
+        }
+    }
+
     public static void main(String[] args) throws IOException {
 
-        if (args.length != 2) {
-            System.err.println("Usage: java Client <hostName> <portNumber>");
-            System.exit(1);
-        }
+//        if (args.length != 2) {
+//            System.err.println("Usage: java Client <hostName> <portNumber>");
+//            System.exit(1);
+//        }
+//
+//        String hostName = args[0];
+//        int portNumber = Integer.parseInt(args[1]);
 
-        String hostName = args[0];
-        int portNumber = Integer.parseInt(args[1]);
-
-        try(Socket socket = new Socket(hostName, portNumber);
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-
-            WorkerA a = new WorkerA(socket);
-            a.notifyConductor();
-            a.work(in, out);
-        }
+        WorkerA a = new WorkerA(new Socket("127.0.0.1", 30121));
+        a.begin();
     }
 }

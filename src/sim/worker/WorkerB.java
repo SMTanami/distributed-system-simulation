@@ -1,56 +1,71 @@
 package sim.worker;
 
 import sim.task.Task;
+import sim.task.TaskA;
 import sim.task.TaskB;
 import sim.component.Component;
 import sim.component.ComponentID;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.Socket;
 import java.util.Random;
 
+import static sim.component.COMPONENT_TYPE.BWORKER;
+
 public class WorkerB implements Component, Worker {
 
-    private final Socket myWorkerSocket;
+    private transient final Socket myWorkerSocket;
+    private transient ObjectOutputStream objOut;
     private final ComponentID COMPONENT_ID;
 
     public WorkerB(Socket workerSocket) {
         myWorkerSocket = workerSocket;
-        Random RANDOM = new Random();
-        COMPONENT_ID = new ComponentID(this, RANDOM.nextInt());
+        COMPONENT_ID = new ComponentID(BWORKER, new Random().nextInt());
+        initializeStreams();
+    }
+
+    private void initializeStreams() {
+        try {
+            objOut = new ObjectOutputStream(myWorkerSocket.getOutputStream());
+        } catch (IOException e) {
+            System.out.println("WorkerA: Could not instantiate streams");
+        }
     }
 
     @Override
     public void notifyConductor() {
-        try (ObjectOutputStream objOut = new ObjectOutputStream(myWorkerSocket.getOutputStream())) {
+        try {
             objOut.writeObject(COMPONENT_ID);
         }
         catch (IOException e) {
             e.printStackTrace();
-            System.out.println("Could not send component ID to conductor");
+            System.out.println("WorkerB: Could not send component ID to conductor");
         }
     }
 
-    private void work(ObjectInputStream in, ObjectOutputStream out) {
-        Task task;
+    public void begin() {
 
-        try {
-            while ((task = (Task) in.readObject()) != null) {
-                System.out.println("Received: " + task);
+        notifyConductor();
+        try(ObjectInputStream objIn = new ObjectInputStream(myWorkerSocket.getInputStream()))
+        {
+            Task task;
+            while ((task = (Task) objIn.readObject()) != null) {
+                System.out.println(COMPONENT_ID + ": received " + task);
 
-                if (task.getClass() == TaskB.class) {
+                if (task.getClass() == TaskA.class) {
                     Thread.sleep(2000);
                     System.out.println("This task should take 2 seconds.");
                 }
 
                 else {
-                    Thread.sleep(10000);
-                    System.out.println("This task should take 10 seconds.");
+                    Thread.sleep(3000);
+                    System.out.println(COMPONENT_ID.component_type() + "This task should take 3 seconds.");
                 }
 
-                System.out.println("Completed: " + task);
-                out.writeObject(task);
+                System.out.println(COMPONENT_ID + ": completed " + task);
+                objOut.writeObject(task);
             }
         }
 
@@ -69,13 +84,7 @@ public class WorkerB implements Component, Worker {
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
 
-        try(Socket socket = new Socket(hostName, portNumber);
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-
-            WorkerB b = new WorkerB(socket);
-            b.notifyConductor();
-            b.work(in, out);
-        }
+        WorkerB b = new WorkerB(new Socket(hostName, portNumber));
+        b.begin();
     }
 }

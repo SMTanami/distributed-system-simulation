@@ -6,24 +6,25 @@ import sim.conductor.cwcomms.ClientHandler;
 import sim.conductor.cwcomms.WorkerHandler;
 import sim.task.Task;
 import sim.task.TaskA;
-import sim.worker.Worker;
-import sim.worker.WorkerA;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import static sim.component.COMPONENT_TYPE.CLIENT;
+
 public class Conductor {
 
     private final ServerSocket myServer;
     private final ComponentListener componentListener = new ComponentListener();
     private final Map<Integer, ClientHandler> cHandlerMap = Collections.synchronizedMap(new HashMap<>());
-    private final Map<ComponentID, WorkerHandler> aWorkerMap = Collections.synchronizedMap(new HashMap<>());
-    private final Map<ComponentID, WorkerHandler> bWorkerMap = Collections.synchronizedMap(new HashMap<>());
+    private final WorkerTracker workerTracker = new WorkerTracker();
     private final BlockingQueue<Task> collectedTasks = new ArrayBlockingQueue<>(100);
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
 
@@ -31,8 +32,9 @@ public class Conductor {
         while (true) {
             try {
                 Task nextTask = collectedTasks.take(); // Blocking call
-                WorkerHandler assignedWorker = assignWorker(nextTask);
-                assignedWorker.setTask(nextTask);
+                WorkerHandler assignedWorker = assignWorker(nextTask); // Blocking call
+                System.out.println(assignedWorker + "was assigned " + nextTask);
+                assignedWorker.sendTask(nextTask);
             } catch (InterruptedException e) {
                 e.printStackTrace();
                 System.out.println("Conductor was interrupted");
@@ -78,22 +80,24 @@ public class Conductor {
                     ObjectInputStream objIn = new ObjectInputStream(incomingComponentSocket.getInputStream());
                     ComponentID componentID = (ComponentID) objIn.readObject();
 
-                    if (componentID.component() instanceof Client) {
-                        ClientHandler clientHandler = new ClientHandler(componentID.refID(), incomingComponentSocket);
+                    if (componentID.component_type() == CLIENT) {
+                        System.out.println("CONDUCTOR: COMPONENT RECEIVED (CLIENT)");
+                        System.out.println("ComponentID: " + componentID);
+                        ClientHandler clientHandler = new ClientHandler(componentID.refID(),
+                                objIn, new DataOutputStream(incomingComponentSocket.getOutputStream()));
                         clientHandler.setCollections(collectedTasks);
                         cHandlerMap.put(componentID.refID(), clientHandler);
                         clientHandler.start();
                     }
 
                     else {
-                        WorkerHandler workerHandler = new WorkerHandler(componentID, incomingComponentSocket);
+                        System.out.println("CONDUCTOR: COMPONENT RECEIVED (WORKER)");
+                        System.out.println("ComponentID: " + componentID);
+                        WorkerHandler workerHandler = new WorkerHandler(componentID, objIn,
+                                new ObjectOutputStream(incomingComponentSocket.getOutputStream()));
                         workerHandler.setCompletedTaskQueue(completedTasks);
-
-                        if (componentID.component() instanceof WorkerA)
-                            aWorkerMap.put(componentID, workerHandler);
-
-                        else bWorkerMap.put(componentID, workerHandler);
-
+                        workerTracker.add(workerHandler);
+                        workerHandler.register(workerTracker);
                         workerHandler.start();
                     }
 
@@ -104,73 +108,43 @@ public class Conductor {
         }
     }
 
-    public void begin() {
+    public void begin() throws InterruptedException{
         componentListener.start();
         taskAssigner.start();
         taskConfirmer.start();
+
+        componentListener.join();
+        taskAssigner.join();
+        taskConfirmer.join();
     }
 
-    /**
-     * To be used privately by the master, this method iterates over stored Collector Threads that have been started
-     * and removes them from the collection if they have been terminated.
-     */
-    private void cleanTerminatedClients() {
-
-        for (ClientHandler handler : cHandlerMap.values())
-        {
-            if (handler.isTerminated()) {
-                cHandlerMap.remove(handler.getClientID());
-            }
-        }
-    }
     
     private WorkerHandler assignWorker(Task task) {
 
         if (task instanceof TaskA) {
-            for (WorkerHandler handler : aWorkerMap.values()) {
-                if (!handler.isOccupied()) {
-                    return handler;
-                }
+            if (workerTracker.isAFree())
+                return workerTracker.getAHandler();
+
+            else if (collectedTasks.size() > 5 * workerTracker.aCount() && areNextSame(collectedTasks, task, workerTracker.aCount())) {
+                if (workerTracker.isBFree())
+                    return workerTracker.getBHandler();
             }
 
-            if (collectedTasks.size() > 5 * aWorkerMap.size() && areNextSame(collectedTasks, task, aWorkerMap.size())) {
-                for (WorkerHandler handler : bWorkerMap.values()) {
-                    if (!handler.isOccupied()) {
-                        return handler;
-                    }
-                }
-            }
-
-
+            System.out.println("Waiting on AHandler");
+            return workerTracker.getAHandler();
         }
 
         else {
-            for (WorkerHandler handler : bArray) {
-                if (!handler.isOccupied()) {
-                    return handler;
-                }
-            }
+            if (workerTracker.isBFree())
+                return workerTracker.getBHandler();
 
-            if (collectedTasks.size() > 5 * bArray.length && areNextSame(collectedTasks, task, bArray.length)) {
-                for (WorkerHandler handler : aArray) {
-                    if (!handler.isOccupied()) {
-                        return handler;
-                    }
-                }
-            }
+            else if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(collectedTasks, task, workerTracker.bCount()))
+                if (workerTracker.isBFree())
+                    return workerTracker.getAHandler();
 
-            while (bArray[0].isOccupied());
-            return bArray[0];
+            System.out.println("Waiting on BHandler");
+            return workerTracker.getBHandler();
         }
-    }
-
-    private WorkerHandler allOccupied() {
-        for (WorkerHandler handler : aWorkerMap.values()) {
-            if (!handler.isOccupied())
-                return handler;
-        }
-
-        return null;
     }
 
     private boolean areNextSame(BlockingQueue<Task> taskQueue, Task task, int length) {
@@ -188,7 +162,7 @@ public class Conductor {
      * @param args list of CL arguments. Should only contain a port number.
      * @throws IOException
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
 
         // Ensure a single argument is used when using this program
         if (args.length != 1){
@@ -197,6 +171,7 @@ public class Conductor {
         }
 
         Conductor conductor = new Conductor(new ServerSocket(Integer.parseInt(args[0])));
+        //Conductor conductor = new Conductor(new ServerSocket(30121));
         conductor.begin();
     }
 }

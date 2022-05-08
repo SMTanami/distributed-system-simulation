@@ -1,6 +1,8 @@
 package sim.component;
 
-public interface Component {
+import java.io.Serializable;
+
+public interface Component extends Serializable {
 
     void notifyConductor();
 
