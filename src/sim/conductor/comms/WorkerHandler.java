@@ -9,10 +9,12 @@ import sim.observer.Observable;
 import sim.observer.Observer;
 import sim.task.TASK_TYPE;
 import sim.task.Task;
+import sim.worker.Worker;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.Socket;
 import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -25,26 +27,40 @@ import java.util.concurrent.BlockingQueue;
  */
 public class WorkerHandler implements Observable {
 
+    private final Socket mySocket;
     private final TASK_TYPE workerType;
     private final ComponentID myComponentID;
     private final ObjectInputStream objIn;
-    private final ObjectOutputStream objOut;
     private final TaskSender taskSender = new TaskSender();
     private final TaskReceiver taskReceiver = new TaskReceiver();
     private final BlockingQueue<Task> tasksToSend = new ArrayBlockingQueue<>(100);
     private final HashSet<WorkerTracker> observingTrackers = new HashSet<>();
     private BlockingQueue<Task> completedTaskQueue;
+    private ObjectOutputStream objOut;
 
     /**
      * @param connectingComponentID the connecting component's ComponentID
+     * @param workerSocket the connecting {@link Worker} socket used to communicate with the respective worker
      * @param objIn the object input stream used to receive tasks from workers
-     * @param objOut the object output stream used to send tasks to workers
      */
-    public WorkerHandler(ComponentID connectingComponentID, TASK_TYPE workerType, ObjectInputStream objIn, ObjectOutputStream objOut) {
+    public WorkerHandler(ComponentID connectingComponentID, Socket workerSocket, TASK_TYPE workerType, ObjectInputStream objIn) {
         this.myComponentID = connectingComponentID;
+        this.mySocket = workerSocket;
         this.workerType = workerType;
         this.objIn = objIn;
-        this.objOut = objOut;
+        initializeStreams();
+    }
+
+    /**
+     * Initializes an ObjectOutputStream for this ClientHandler instance to use to communicate with its respective client.
+     */
+    private void initializeStreams() {
+        try {
+            objOut = new ObjectOutputStream(mySocket.getOutputStream());
+        } catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

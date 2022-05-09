@@ -14,7 +14,7 @@ import static sim.task.TASK_TYPE.B;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(30121);
         Conductor conductor = new Conductor(serverSocket);
         Client clientOne = new Client(new Socket("127.0.0.1", 30121), 10);
@@ -33,8 +33,5 @@ public class Main {
         workerBThread.start();
         clientOneThread.start();
         clientTwoThread.start();
-
-        clientTwoThread.join();
     }
-
 }

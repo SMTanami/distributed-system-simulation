@@ -4,12 +4,11 @@ import sim.comms.Receiver;
 import sim.comms.Sender;
 import sim.component.ComponentID;
 import sim.conductor.Conductor;
-import sim.task.TASK_TYPE;
 import sim.task.Task;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Random;
@@ -41,7 +40,6 @@ public class Client {
     private final TaskSender sender = new TaskSender();
     private final TaskReceiver receiver = new TaskReceiver();
     private ObjectOutputStream objOut;
-    private DataInputStream dataIn;
 
     /**
      * @param clientSocket the socket that the client will use to send and receive messages from the Conductor
@@ -70,7 +68,6 @@ public class Client {
     private void initializeStreams() {
         try {
             objOut = new ObjectOutputStream(mySocket.getOutputStream());
-            dataIn = new DataInputStream(mySocket.getInputStream());
         } catch (IOException e){
             e.printStackTrace();
         }
@@ -139,7 +136,7 @@ public class Client {
                 Task t;
                 while ((t = taskTracker.take()) != null) {
                     objOut.writeObject(t);
-                    System.out.printf("CLIENT %d: SENT %s\n", myComponentID.refID(), t);
+                    System.out.printf("CLIENT %d: Sent %s\n", myComponentID.refID(), t);
                 }
                 System.out.printf("CLIENT %d: All tasks sent, sender thread terminating...\n", myComponentID.refID());
             } catch (IOException e) {
@@ -162,11 +159,14 @@ public class Client {
 
         @Override
         public void receive() {
-            try {
+            try{
+                ObjectInputStream objIn = new ObjectInputStream(mySocket.getInputStream());
+                Task incomingTask;
                 while (!taskTracker.isSatisfied()) {
-                    taskTracker.give(dataIn.readInt()); // Blocking call
+                    taskTracker.give((incomingTask = (Task) objIn.readObject()).taskID()); // Blocking call
+                    System.out.printf("CLIENT %d: Received %s\n", myComponentID.refID(), incomingTask);
                 }
-            } catch (IOException e) {
+            } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
             finally {

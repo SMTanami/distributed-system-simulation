@@ -103,8 +103,7 @@ public class Conductor {
 
                     if (componentID.component_type() == CLIENT) {
                         System.out.println("CONDUCTOR: " + componentID + " connected...");
-                        ClientHandler clientHandler = new ClientHandler(componentID,
-                                objIn, new DataOutputStream(incomingComponentSocket.getOutputStream()));
+                        ClientHandler clientHandler = new ClientHandler(componentID, incomingComponentSocket, objIn);
                         clientHandler.setCollections(collectedTasks);
                         clientHandlerMap.put(componentID.refID(), clientHandler);
                         clientHandler.start();
@@ -113,8 +112,8 @@ public class Conductor {
                     else {
                         System.out.println("CONDUCTOR: COMPONENT RECEIVED " + componentID + " connected...");
                         TASK_TYPE workerType = (TASK_TYPE) objIn.readObject();
-                        WorkerHandler workerHandler = new WorkerHandler(componentID, workerType, objIn,
-                                new ObjectOutputStream(incomingComponentSocket.getOutputStream()));
+                        WorkerHandler workerHandler = new WorkerHandler(componentID, incomingComponentSocket,
+                                workerType, objIn);
                         workerHandler.setCompletedTaskQueue(completedTasks);
                         workerTracker.add(workerHandler);
                         workerHandler.register(workerTracker);

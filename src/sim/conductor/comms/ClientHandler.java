@@ -1,5 +1,6 @@
 package sim.conductor.comms;
 
+import sim.client.Client;
 import sim.comms.Receiver;
 import sim.comms.Sender;
 import sim.component.ComponentID;
@@ -7,45 +8,61 @@ import sim.conductor.Conductor;
 import sim.task.Task;
 
 import java.io.*;
+import java.net.Socket;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
  * This class handles the {@link Conductor} connection with a given client. Via separate thread classes in: {@link TaskReceiver}
- * and {@link TaskConfirmer},this class will store tasks it receives from the appropriate client in a collection for the
+ * and {@link TaskSender},this class will store tasks it receives from the appropriate client in a collection for the
  * Conductor to oversee (this class will have a reference to that collection via DIP), as well as store completed tasks
  * that have been processed by the overarching program in order to send them back to the respective client.
  */
 public class ClientHandler {
 
+    private final Socket mySocket;
     private final ComponentID myComponentID;
-    private final ObjectInputStream objIn;
-    private final DataOutputStream dataOut;
-    private final TaskConfirmer taskConfirmer = new TaskConfirmer();
+    private final TaskSender taskSender = new TaskSender();
     private final TaskReceiver taskReceiver = new TaskReceiver();
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
+    private ObjectInputStream objIn;
+    private ObjectOutputStream objOut;
     private BlockingQueue<Task> collectedTasks;
 
     /**
-     * @param connectingComponentID the component ID of the client that this ClientHandler instance will be overseeing responsibility for.
+     * @param connectingComponentID the component ID of the client that this ClientHandler instance will be overseeing
+     *                             responsibility for.
+     * @param clientSocket the connecting {@link Client} socket used to communicate with the respective client
      * @param objIn the object input stream to be used to receive tasks from the connecting client
-     * @param dataOut the data output stream to be used to send completed task IDs back to the connecting client
      */
-    public ClientHandler(ComponentID connectingComponentID, ObjectInputStream objIn, DataOutputStream dataOut) {
+    public ClientHandler(ComponentID connectingComponentID, Socket clientSocket, ObjectInputStream objIn) {
         this.myComponentID = connectingComponentID;
+        this.mySocket = clientSocket;
         this.objIn = objIn;
-        this.dataOut = dataOut;
+        initializeStreams();
     }
 
     /**
-     * Starts the {@link TaskReceiver} and {@link TaskConfirmer} threads to begin collecting incoming tasks from the client and sending completed
+     * Initializes an ObjectOutputStream for this ClientHandler instance to use to communicate with its respective client.
+     */
+    private void initializeStreams() {
+        try {
+            objOut = new ObjectOutputStream(mySocket.getOutputStream());
+        } catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Starts the {@link TaskReceiver} and {@link TaskSender} threads to begin collecting incoming tasks from the client and sending completed
      * tasks back to it.
      */
     public void start() {
         if (collectedTasks == null)
             throw new RuntimeException("Cannot start handler without setting task collection...");
 
-        taskConfirmer.start();
+        taskSender.start();
         taskReceiver.start();
     }
 
@@ -54,8 +71,7 @@ public class ClientHandler {
      */
     private void terminate() {
         try {
-            objIn.close();
-            dataOut.close();
+            mySocket.close();
         } catch (IOException e){
             e.printStackTrace();
         }
@@ -63,7 +79,7 @@ public class ClientHandler {
 
     /**
      * While this method does not literally send a task to the connected client, it does add it to a BlockingQueue that
-     * this ClientHandler's {@link TaskConfirmer} instance will send back to the client. This is done in order to keep
+     * this ClientHandler's {@link TaskSender} instance will send back to the client. This is done in order to keep
      * things as asynchronous as possible.
      * @param completedTask the task that has completed and should be returned to the client
      */
@@ -128,7 +144,7 @@ public class ClientHandler {
      * and send tasks to and from clients concurrently, the TaskConfirmer assumes the responsibility of  confirming
      * completed tasks with the given client via the parent ClientHandler's client sockets output stream.
      */
-    private class TaskConfirmer extends Thread implements Sender {
+    private class TaskSender extends Thread implements Sender {
 
         /**
          * When a completed task becomes available in the parent ClientHolder's blocking queue, the TaskConfirmer will
@@ -144,7 +160,7 @@ public class ClientHandler {
             try {
                 Task completedTask;
                 while ((completedTask = completedTasks.take()) != null) {
-                    dataOut.writeInt(completedTask.taskID());
+                    objOut.writeObject(completedTask);
                     System.out.println("CONDUCTOR: Confirmed " + completedTask + " with client");
                 }
 
