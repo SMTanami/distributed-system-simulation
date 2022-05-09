@@ -32,14 +32,13 @@ import static sim.component.COMPONENT_TYPE.CLIENT;
 public class Client {
 
     private static final Random RANDOM = new Random();
+    private static final TaskA ENDER_TASK = new TaskA(-1, -1);
 
+    private final ComponentID myComponentID = new ComponentID(CLIENT, RANDOM.nextInt());
     private final Socket mySocket;
     private final TaskTracker taskTracker;
     private final TaskSender sender = new TaskSender();
     private final TaskReceiver receiver = new TaskReceiver();
-    private final int ID = RANDOM.nextInt();
-    private final ComponentID COMPONENT_ID = new ComponentID(CLIENT, ID);
-    private final TaskA enderTask = new TaskA(ID, -1);
     private ObjectOutputStream objOut;
     private DataInputStream dataIn;
 
@@ -82,10 +81,10 @@ public class Client {
      * client instance.
      */
     private void terminate() {
-        System.out.printf("CLIENT %d: Received all tasks, ending communication with conductor...\n", ID);
+        System.out.printf("CLIENT %d: Received all tasks, ending communication with conductor...\n", myComponentID.refID());
 
         try {
-            objOut.writeObject(enderTask);
+            objOut.writeObject(ENDER_TASK);
             mySocket.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -102,9 +101,9 @@ public class Client {
         for (int i = 0; i < taskAmount; i++) {
 
             if (RANDOM.nextDouble() > 0.50)
-                tasks[i] = new TaskA(ID, i);
+                tasks[i] = new TaskA(myComponentID.refID(), i);
 
-            else tasks[i] = new TaskB(ID, i);
+            else tasks[i] = new TaskB(myComponentID.refID(), i);
 
         }
 
@@ -116,7 +115,7 @@ public class Client {
      */
     private void notifyConductor() {
         try {
-            objOut.writeObject(COMPONENT_ID);
+            objOut.writeObject(myComponentID);
         } catch (IOException e)
         {
             throw new RuntimeException(e);
@@ -140,12 +139,10 @@ public class Client {
                 Task t;
                 while ((t = taskTracker.take()) != null) {
                     objOut.writeObject(t);
-                    System.out.printf("CLIENT %d: SENT %s\n", ID, t);
+                    System.out.printf("CLIENT %d: SENT %s\n", myComponentID.refID(), t);
                 }
-                System.out.printf("CLIENT %d: All tasks sent, sender thread terminating...\n", ID);
-            }
-            catch (IOException e)
-            {
+                System.out.printf("CLIENT %d: All tasks sent, sender thread terminating...\n", myComponentID.refID());
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
@@ -169,15 +166,16 @@ public class Client {
                 while (!taskTracker.isSatisfied()) {
                     taskTracker.give(dataIn.readInt()); // Blocking call
                 }
-
-                terminate();
             } catch (IOException e) {
                 e.printStackTrace();
+            }
+            finally {
+                terminate();
             }
         }
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+    public static void main(String[] args) throws IOException, InterruptedException {
 
         if (args.length != 3) {
             System.out.println("Usage: java Client <host name> <port number> <task amount>");

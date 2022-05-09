@@ -3,6 +3,7 @@ package sim.conductor.comms;
 import sim.comms.Receiver;
 import sim.comms.Sender;
 import sim.component.ComponentID;
+import sim.conductor.Conductor;
 import sim.task.Task;
 
 import java.io.*;
@@ -10,10 +11,10 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * This class handles the master's connection with a given client. Via separate thread classes in: {@link TaskReceiver}
- * and {@link TaskConfirmer},this class will store tasks it receives from the client in a collection fot eh Conductor to oversee,
- * as well as store completed tasks that have been processed by the overarching program in order to send them back to the
- * appropriate client.
+ * This class handles the {@link Conductor} connection with a given client. Via separate thread classes in: {@link TaskReceiver}
+ * and {@link TaskConfirmer},this class will store tasks it receives from the appropriate client in a collection for the
+ * Conductor to oversee (this class will have a reference to that collection via DIP), as well as store completed tasks
+ * that have been processed by the overarching program in order to send them back to the respective client.
  */
 public class ClientHandler {
 
@@ -26,12 +27,12 @@ public class ClientHandler {
     private BlockingQueue<Task> collectedTasks;
 
     /**
-     * @param componentID the component ID of the client that this ClientHandler instance will be overseeing responsibility for.
+     * @param connectingComponentID the component ID of the client that this ClientHandler instance will be overseeing responsibility for.
      * @param objIn the object input stream to be used to receive tasks from the connecting client
      * @param dataOut the data output stream to be used to send completed task IDs back to the connecting client
      */
-    public ClientHandler(ComponentID componentID, ObjectInputStream objIn, DataOutputStream dataOut) {
-        this.myComponentID = componentID;
+    public ClientHandler(ComponentID connectingComponentID, ObjectInputStream objIn, DataOutputStream dataOut) {
+        this.myComponentID = connectingComponentID;
         this.objIn = objIn;
         this.dataOut = dataOut;
     }
@@ -49,10 +50,22 @@ public class ClientHandler {
     }
 
     /**
+     * Closes client-communication-related resources, i.e. streams used to communicate to the client.
+     */
+    private void terminate() {
+        try {
+            objIn.close();
+            dataOut.close();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * While this method does not literally send a task to the connected client, it does add it to a BlockingQueue that
      * this ClientHandler's {@link TaskConfirmer} instance will send back to the client. This is done in order to keep
      * things as asynchronous as possible.
-     * @param completedTask
+     * @param completedTask the task that has completed and should be returned to the client
      */
     public void sendTask(Task completedTask) {
         completedTasks.add(completedTask);
@@ -69,10 +82,10 @@ public class ClientHandler {
     }
 
     /**
-     * @return this ClientHandler's ClientID
+     * @return the {@link sim.client.Client} that is handled by this ClientHandler's ComponentID
      */
-    public int getClientID() {
-        return myComponentID.refID();
+    public ComponentID getComponentID() {
+        return myComponentID;
     }
 
     /**
@@ -103,6 +116,9 @@ public class ClientHandler {
             catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
                 System.exit(1);
+            }
+            finally {
+                terminate();
             }
         }
     }

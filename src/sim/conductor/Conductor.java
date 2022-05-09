@@ -1,5 +1,6 @@
 package sim.conductor;
 
+import sim.comms.Receiver;
 import sim.component.ComponentID;
 import sim.conductor.comms.ClientHandler;
 import sim.conductor.comms.WorkerHandler;
@@ -15,15 +16,30 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static sim.component.COMPONENT_TYPE.CLIENT;
 
+/**
+ * The Conductor is the hub of the simulation. ALl components connect to the Conductor to send and receive tasks. It is
+ * therefore the responsibility of this class to conduct the event flow of the simulation. In order to achieve this in
+ * an asynchronous manner, the Conductor heavily leverages multithreading.
+ * <p>
+ * The threads that enable this behavior are: {@link ComponentListener}, and local Thread fields named: taskAssigner and
+ * clientUpdater. The task assigner is the main function of the conductor. Using its algorithm, the conductor decides which
+ * worker is assigned what task. The clientUpdater Thread is constantly getting completed tasks from workers and sending them
+ * back to the appropriate {@link sim.client.Client}.
+ * <p>
+ * In order to know which Worker and Client to communicate with, the Conductor maintains a collection of ClientHandlers
+ * and employs a {@link WorkerTracker} to keep track of WorkerHandlers, making use of their componentIDs to know which
+ * specific Client or Worker to communicate to.
+ */
 public class Conductor {
 
     private final ServerSocket server;
     private final ComponentListener componentListener = new ComponentListener();
-    private final Map<Integer, ClientHandler> cHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private final WorkerTracker workerTracker = new WorkerTracker();
+    private final Map<Integer, ClientHandler> cHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private final BlockingQueue<Task> collectedTasks = new ArrayBlockingQueue<>(100);
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
 
@@ -40,7 +56,7 @@ public class Conductor {
             }
         }
     });
-    private final Thread taskConfirmer = new Thread(() -> {
+    private final Thread clientUpdater = new Thread(() -> {
         try {
             Task completedTask;
             while ((completedTask = completedTasks.take()) != null) {
@@ -52,15 +68,19 @@ public class Conductor {
         }
     });
 
+    /**
+     * @param serverSocket the server socket that all components will use to connect and communicate to
+     */
     public Conductor(ServerSocket serverSocket) {
         this.server = serverSocket;
     }
 
     /**
      * This class will listen for clients and workers that are looking to connect to the given server socket. Upon establishing a connection,
-     * a {@link ClientHandler} or a {@link WorkerHandler} will be created and placed within the master's Map of clients or Map of workers.
+     * a {@link ClientHandler} or a {@link WorkerHandler} will be created and placed within the {@link Conductor}s Map
+     * of clients or the Conductors {@link WorkerTracker}.
      */
-    private class ComponentListener extends Thread {
+    private class ComponentListener extends Thread implements Receiver {
 
         /**
          * Listens for client sockets as they try to connect. Will immediately create and update the master with a new
@@ -68,7 +88,11 @@ public class Conductor {
          */
         @Override
         public void run() {
+            receive();
+        }
 
+        @Override
+        public void receive() {
             while (!server.isClosed())
             {
                 try {
@@ -78,7 +102,7 @@ public class Conductor {
 
                     if (componentID.component_type() == CLIENT) {
                         System.out.println("CONDUCTOR: " + componentID + " connected...");
-                        ClientHandler clientHandler = new ClientHandler(componentID.refID(),
+                        ClientHandler clientHandler = new ClientHandler(componentID,
                                 objIn, new DataOutputStream(incomingComponentSocket.getOutputStream()));
                         clientHandler.setCollections(collectedTasks);
                         cHandlerMap.put(componentID.refID(), clientHandler);
@@ -102,19 +126,28 @@ public class Conductor {
         }
     }
 
-    public void begin() throws InterruptedException{
+    /**
+     * Starts all contained threads: {@link ComponentListener}, taskAssigner, and clientUpdater.
+     */
+    public void begin() {
         componentListener.start();
         taskAssigner.start();
-        taskConfirmer.start();
+        clientUpdater.start();
     }
 
+    /**
+     * This is the algorithm of the Conductor. Based on certain variables, the method will choose the best Worker to
+     * work on the given task.
+     * @param task the task that requires assignment
+     * @return a WorkerHandler that will handle the communication with the chosen worker meant to complete the given task
+     */
     private WorkerHandler assignWorker(Task task) {
 
         if (task instanceof TaskA) {
             if (workerTracker.isAFree())
                 return workerTracker.getAHandler();
 
-            else if (collectedTasks.size() > 5 * workerTracker.aCount() && areNextSame(collectedTasks, task, workerTracker.aCount())) {
+            else if (collectedTasks.size() > 5 * workerTracker.aCount() && areNextSame(task, workerTracker.aCount())) {
                 if (workerTracker.isBFree())
                     return workerTracker.getBHandler();
             }
@@ -127,7 +160,7 @@ public class Conductor {
             if (workerTracker.isBFree())
                 return workerTracker.getBHandler();
 
-            else if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(collectedTasks, task, workerTracker.bCount()))
+            else if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(task, workerTracker.bCount()))
                 if (workerTracker.isBFree())
                     return workerTracker.getAHandler();
 
@@ -136,22 +169,29 @@ public class Conductor {
         }
     }
 
-    private boolean areNextSame(BlockingQueue<Task> taskQueue, Task task, int length) {
-        Task[] taskArray = taskQueue.toArray(new Task[0]);
-        for (int i = 0; i < 5 * length; i++) {
-            if (taskArray[i].getClass() != task.getClass()) {
-                return false;
-            }
-        }
-        return true;
+    /**
+     * Method to be internally used by the Conductor. Tests to see if the next five tasks in the queue are of the same type
+     * as the given queue.
+     * @param task the task to be assigned a worker
+     * @param length the length of the queue
+     * @return true if the next five tasks in the queue are the same, false otherwise
+     */
+    private boolean areNextSame(Task task, int length) {
+        AtomicBoolean result = new AtomicBoolean(true);
+        completedTasks.stream().limit(5L * length).forEachOrdered(t -> {
+            if (t.getClass() != task.getClass())
+                result.set(false);
+        });
+
+        return result.get();
     }
 
     /**
-     * Initiate the collection of clients and retrival and processing of their tasks
+     * Initiate the collection of clients and retrieval and processing of their tasks
      * @param args list of CL arguments. Should only contain a port number.
-     * @throws IOException
+     * @throws IOException if an I/O error occurs when opening the soon-to-be-created ServerSocket
      */
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
 
         // Ensure a single argument is used when using this program
         if (args.length != 1){
