@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -161,13 +162,9 @@ public class WorkerHandler implements Observable {
                 }
             }
 
-            catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            catch (ClassNotFoundException e) {
-                System.err.println("Couldn't find the object's class.");
-                System.exit(1);
+            catch (IOException | ClassNotFoundException e) {
+                if (e instanceof IOException)
+                    System.out.printf("CONDUCTOR: Worker(%s) %d has disconnected...\n", workerType, myComponentID.refID());
             }
         }
     }

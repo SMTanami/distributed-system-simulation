@@ -136,8 +136,8 @@ public class ClientHandler {
                 System.out.printf("CONDUCTOR: Termination request by client %d... terminating\n", incomingTask.clientID());
             }
             catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-                System.exit(1);
+                if (e instanceof IOException)
+                    System.out.printf("CONDUCTOR: Client %d has disconnected...\n", myComponentID.refID());
             }
             finally {
                 terminate();
