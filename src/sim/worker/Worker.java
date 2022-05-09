@@ -14,14 +14,14 @@ import static sim.component.COMPONENT_TYPE.WORKER;
 public class Worker {
 
     private final Socket myWorkerSocket;
-    private final ComponentID COMPONENT_ID;
+    private final ComponentID componentID;
     private final TASK_TYPE workerType;
     private ObjectOutputStream objOut;
 
     public Worker(Socket workerSocket, TASK_TYPE workerType) {
         this.myWorkerSocket = workerSocket;
         this.workerType = workerType;
-        COMPONENT_ID = new ComponentID(WORKER, new Random().nextInt());
+        componentID = new ComponentID(WORKER, new Random().nextInt());
         initializeStreams();
     }
 
@@ -40,19 +40,19 @@ public class Worker {
         {
             Task task;
             while ((task = (Task) objIn.readObject()) != null) {
-                System.out.println(COMPONENT_ID + ": received " + task);
+                System.out.printf("WORKER(%s) %d: Received task of type %s\n", workerType, componentID.refID(), task.type());
 
                 if (task.type() == workerType) {
                     Thread.sleep(2000);
-                    System.out.println(COMPONENT_ID.component_type() + "This task should take 2 seconds.");
+                    System.out.printf("WORKER(%s) %d: This task should take %d seconds\n", workerType, componentID.refID(), 2);
                 }
 
                 else {
                     Thread.sleep(10000);
-                    System.out.println("This task should take 10 seconds.");
+                    System.out.printf("WORKER(%s) %d: This task should take %d seconds\n", workerType, componentID.refID(), 10);
                 }
 
-                System.out.println("Completed: " + task);
+                System.out.printf("WORKER(%s) %d: Completed task %s\n", workerType, componentID.refID(), task);
                 objOut.writeObject(task);
             }
         }
@@ -64,7 +64,7 @@ public class Worker {
 
     private void notifyConductor() {
         try {
-            objOut.writeObject(COMPONENT_ID);
+            objOut.writeObject(componentID);
             objOut.writeObject(workerType);
         }
         catch (IOException e) {
@@ -73,8 +73,8 @@ public class Worker {
         }
     }
 
-    public ComponentID getCOMPONENT_ID() {
-        return COMPONENT_ID;
+    public ComponentID getComponentID() {
+        return componentID;
     }
 
     public TASK_TYPE getWorkerType() {

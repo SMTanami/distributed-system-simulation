@@ -49,7 +49,7 @@ public class Conductor {
             try {
                 Task nextTask = collectedTasks.take(); // Blocking call
                 WorkerHandler assignedWorker = assignWorker(nextTask); // Blocking call
-                System.out.println(assignedWorker + " was assigned " + nextTask);
+                System.out.printf("CONDUCTOR: Worker(%d) was assigned %s\n", assignedWorker.getComponentID().refID(), nextTask);
                 assignedWorker.sendTask(nextTask);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -154,7 +154,7 @@ public class Conductor {
                     return workerTracker.getBHandler();
             }
 
-            System.out.println("Waiting on AHandler");
+            System.out.println("CONDUCTOR: Waiting on Worker of type A");
             return workerTracker.getAHandler();
         }
 
@@ -166,7 +166,7 @@ public class Conductor {
                 if (workerTracker.isBFree())
                     return workerTracker.getAHandler();
 
-            System.out.println("Waiting on BHandler");
+            System.out.println("CONDUCTOR: Waiting on Worker of type B");
             return workerTracker.getBHandler();
         }
     }
