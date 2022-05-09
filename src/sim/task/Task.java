@@ -2,24 +2,16 @@ package sim.task;
 
 import java.io.Serializable;
 
-public abstract class Task implements Serializable {
-
-    private final int taskID;
-    private final int clientID;
-
-    public Task(int clientID, int taskID) {
-        this.clientID = clientID;
-        this.taskID = taskID;
-    }
-
-    public int getClientID() {
-        return clientID;
-    }
-
-    public int getTaskID() {
-        return taskID;
-    }
+public record Task(int clientID, int taskID, TASK_TYPE type) implements Serializable {
 
     @Override
-    public abstract String toString();
+    public String toString() {
+        return "Task: [clientID = "
+                + clientID
+                + ", task ID = "
+                + taskID
+                + ", type = "
+                + type
+                + "]";
+    }
 }

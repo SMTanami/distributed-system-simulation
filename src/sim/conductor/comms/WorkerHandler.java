@@ -7,6 +7,7 @@ import sim.conductor.Conductor;
 import sim.conductor.WorkerTracker;
 import sim.observer.Observable;
 import sim.observer.Observer;
+import sim.task.TASK_TYPE;
 import sim.task.Task;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.util.concurrent.BlockingQueue;
  */
 public class WorkerHandler implements Observable {
 
+    private final TASK_TYPE workerType;
     private final ComponentID myComponentID;
     private final ObjectInputStream objIn;
     private final ObjectOutputStream objOut;
@@ -38,8 +40,9 @@ public class WorkerHandler implements Observable {
      * @param objIn the object input stream used to receive tasks from workers
      * @param objOut the object output stream used to send tasks to workers
      */
-    public WorkerHandler(ComponentID connectingComponentID, ObjectInputStream objIn, ObjectOutputStream objOut) {
+    public WorkerHandler(ComponentID connectingComponentID, TASK_TYPE workerType, ObjectInputStream objIn, ObjectOutputStream objOut) {
         this.myComponentID = connectingComponentID;
+        this.workerType = workerType;
         this.objIn = objIn;
         this.objOut = objOut;
     }
@@ -63,10 +66,17 @@ public class WorkerHandler implements Observable {
     }
 
     /**
-     * @return the {@link sim.worker.WorkerA} or {@link sim.worker.WorkerB} that is handled by this WorkerHandler's ComponentID
+     * @return the {@link sim.worker.Worker} or {@link sim.worker.Worker} that is handled by this WorkerHandler's ComponentID
      */
     public ComponentID getComponentID() {
         return myComponentID;
+    }
+
+    /**
+     * @return the type of worker associated with this WorkerHandler instance
+     */
+    public TASK_TYPE getWorkerType() {
+        return workerType;
     }
 
     /**

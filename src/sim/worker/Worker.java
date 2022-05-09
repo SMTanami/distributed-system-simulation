@@ -1,7 +1,7 @@
 package sim.worker;
 
+import sim.task.TASK_TYPE;
 import sim.task.Task;
-import sim.task.TaskA;
 import sim.component.ComponentID;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -9,17 +9,19 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Random;
 
-import static sim.component.COMPONENT_TYPE.AWORKER;
+import static sim.component.COMPONENT_TYPE.WORKER;
 
-public class WorkerA {
+public class Worker {
 
     private final Socket myWorkerSocket;
     private final ComponentID COMPONENT_ID;
+    private final TASK_TYPE workerType;
     private ObjectOutputStream objOut;
 
-    public WorkerA(Socket workerSocket) {
-        myWorkerSocket = workerSocket;
-        COMPONENT_ID = new ComponentID(AWORKER, new Random().nextInt());
+    public Worker(Socket workerSocket, TASK_TYPE workerType) {
+        this.myWorkerSocket = workerSocket;
+        this.workerType = workerType;
+        COMPONENT_ID = new ComponentID(WORKER, new Random().nextInt());
         initializeStreams();
     }
 
@@ -40,14 +42,14 @@ public class WorkerA {
             while ((task = (Task) objIn.readObject()) != null) {
                 System.out.println(COMPONENT_ID + ": received " + task);
 
-                if (task.getClass() == TaskA.class) {
+                if (task.type() == workerType) {
                     Thread.sleep(2000);
                     System.out.println(COMPONENT_ID.component_type() + "This task should take 2 seconds.");
                 }
 
                 else {
-                    Thread.sleep(3000);
-                    System.out.println("This task should take 3 seconds.");
+                    Thread.sleep(10000);
+                    System.out.println("This task should take 10 seconds.");
                 }
 
                 System.out.println("Completed: " + task);
@@ -63,24 +65,34 @@ public class WorkerA {
     private void notifyConductor() {
         try {
             objOut.writeObject(COMPONENT_ID);
+            objOut.writeObject(workerType);
         }
         catch (IOException e) {
             e.printStackTrace();
-            System.out.println("WorkerA: Could not send component ID to conductor");
+            System.out.println("Worker: Could not send component ID to conductor");
         }
+    }
+
+    public ComponentID getCOMPONENT_ID() {
+        return COMPONENT_ID;
+    }
+
+    public TASK_TYPE getWorkerType() {
+        return workerType;
     }
 
     public static void main(String[] args) throws IOException {
 
-        if (args.length != 2) {
-            System.err.println("Usage: java Client <hostName> <portNumber>");
+        if (args.length != 3) {
+            System.err.println("Usage: java Client <hostName> <portNumber> <worker type>");
             System.exit(1);
         }
 
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
+        TASK_TYPE workerType = TASK_TYPE.valueOf(args[2]);
 
-        WorkerA a = new WorkerA(new Socket(hostName, portNumber));
-        a.begin();
+        Worker worker = new Worker(new Socket(hostName, portNumber), workerType);
+        worker.begin();
     }
 }

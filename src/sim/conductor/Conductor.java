@@ -4,8 +4,8 @@ import sim.comms.Receiver;
 import sim.component.ComponentID;
 import sim.conductor.comms.ClientHandler;
 import sim.conductor.comms.WorkerHandler;
+import sim.task.TASK_TYPE;
 import sim.task.Task;
-import sim.task.TaskA;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -19,6 +19,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static sim.component.COMPONENT_TYPE.CLIENT;
+import static sim.task.TASK_TYPE.A;
 
 /**
  * The Conductor is the hub of the simulation. ALl components connect to the Conductor to send and receive tasks. It is
@@ -39,7 +40,7 @@ public class Conductor {
     private final ServerSocket server;
     private final ComponentListener componentListener = new ComponentListener();
     private final WorkerTracker workerTracker = new WorkerTracker();
-    private final Map<Integer, ClientHandler> cHandlerMap = Collections.synchronizedMap(new HashMap<>());
+    private final Map<Integer, ClientHandler> clientHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private final BlockingQueue<Task> collectedTasks = new ArrayBlockingQueue<>(100);
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
 
@@ -60,7 +61,7 @@ public class Conductor {
         try {
             Task completedTask;
             while ((completedTask = completedTasks.take()) != null) {
-                cHandlerMap.get(completedTask.getClientID()).sendTask(completedTask);
+                clientHandlerMap.get(completedTask.clientID()).sendTask(completedTask);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -96,7 +97,7 @@ public class Conductor {
             while (!server.isClosed())
             {
                 try {
-                    Socket incomingComponentSocket = Conductor.this.server.accept();
+                    Socket incomingComponentSocket = server.accept();
                     ObjectInputStream objIn = new ObjectInputStream(incomingComponentSocket.getInputStream());
                     ComponentID componentID = (ComponentID) objIn.readObject();
 
@@ -105,13 +106,14 @@ public class Conductor {
                         ClientHandler clientHandler = new ClientHandler(componentID,
                                 objIn, new DataOutputStream(incomingComponentSocket.getOutputStream()));
                         clientHandler.setCollections(collectedTasks);
-                        cHandlerMap.put(componentID.refID(), clientHandler);
+                        clientHandlerMap.put(componentID.refID(), clientHandler);
                         clientHandler.start();
                     }
 
                     else {
                         System.out.println("CONDUCTOR: COMPONENT RECEIVED " + componentID + " connected...");
-                        WorkerHandler workerHandler = new WorkerHandler(componentID, objIn,
+                        TASK_TYPE workerType = (TASK_TYPE) objIn.readObject();
+                        WorkerHandler workerHandler = new WorkerHandler(componentID, workerType, objIn,
                                 new ObjectOutputStream(incomingComponentSocket.getOutputStream()));
                         workerHandler.setCompletedTaskQueue(completedTasks);
                         workerTracker.add(workerHandler);
@@ -143,7 +145,7 @@ public class Conductor {
      */
     private WorkerHandler assignWorker(Task task) {
 
-        if (task instanceof TaskA) {
+        if (task.type() == A) {
             if (workerTracker.isAFree())
                 return workerTracker.getAHandler();
 
@@ -179,7 +181,7 @@ public class Conductor {
     private boolean areNextSame(Task task, int length) {
         AtomicBoolean result = new AtomicBoolean(true);
         completedTasks.stream().limit(5L * length).forEachOrdered(t -> {
-            if (t.getClass() != task.getClass())
+            if (t.type() == task.type())
                 result.set(false);
         });
 

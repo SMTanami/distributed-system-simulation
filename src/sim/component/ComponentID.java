@@ -1,5 +1,7 @@
 package sim.component;
 
+import sim.task.TASK_TYPE;
+
 import java.io.Serializable;
 
 /**
@@ -11,6 +13,7 @@ import java.io.Serializable;
  *              component type
  */
 public record ComponentID(COMPONENT_TYPE component_type, int refID) implements Serializable {
+
     @Override
     public String toString() {
         return

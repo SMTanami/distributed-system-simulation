@@ -4,9 +4,8 @@ import sim.comms.Receiver;
 import sim.comms.Sender;
 import sim.component.ComponentID;
 import sim.conductor.Conductor;
+import sim.task.TASK_TYPE;
 import sim.task.Task;
-import sim.task.TaskA;
-import sim.task.TaskB;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -16,6 +15,8 @@ import java.net.Socket;
 import java.util.Random;
 
 import static sim.component.COMPONENT_TYPE.CLIENT;
+import static sim.task.TASK_TYPE.A;
+import static sim.task.TASK_TYPE.B;
 
 /**
  * This class acts as a Client in a distributed system. It initializes tasks and utilizes multithreading to send and
@@ -32,9 +33,9 @@ import static sim.component.COMPONENT_TYPE.CLIENT;
 public class Client {
 
     private static final Random RANDOM = new Random();
-    private static final TaskA ENDER_TASK = new TaskA(-1, -1);
 
     private final ComponentID myComponentID = new ComponentID(CLIENT, RANDOM.nextInt());
+    private final Task ENDER_TASK = new Task(myComponentID.refID(), -1, A);
     private final Socket mySocket;
     private final TaskTracker taskTracker;
     private final TaskSender sender = new TaskSender();
@@ -55,9 +56,8 @@ public class Client {
     /**
      * Notifies the {@link Conductor} of the oncoming connection. Additionally, starts {@link TaskSender} and {@link TaskReceiver}
      * threads to both send and receive tasks from the Conductor.
-     * @throws InterruptedException - if the threads were already staretd
      */
-    public void begin() throws InterruptedException {
+    public void begin() {
         notifyConductor();
         sender.start();
         receiver.start();
@@ -101,9 +101,9 @@ public class Client {
         for (int i = 0; i < taskAmount; i++) {
 
             if (RANDOM.nextDouble() > 0.50)
-                tasks[i] = new TaskA(myComponentID.refID(), i);
+                tasks[i] = new Task(myComponentID.refID(), i, A);
 
-            else tasks[i] = new TaskB(myComponentID.refID(), i);
+            else tasks[i] = new Task(myComponentID.refID(), i, B);
 
         }
 
@@ -175,7 +175,7 @@ public class Client {
         }
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
 
         if (args.length != 3) {
             System.out.println("Usage: java Client <host name> <port number> <task amount>");

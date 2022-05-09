@@ -3,12 +3,14 @@ package sim.conductor;
 
 import sim.conductor.comms.WorkerHandler;
 import sim.observer.Observer;
+import sim.task.TASK_TYPE;
 
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import static sim.component.COMPONENT_TYPE.AWORKER;
+import static sim.component.COMPONENT_TYPE.WORKER;
+import static sim.task.TASK_TYPE.A;
 
 /**
  * This class is used by the conductor to track all connected Workers via their respective WorkerHandlers. Whenever
@@ -31,7 +33,7 @@ public class WorkerTracker implements Observer {
      * @param workerHandler the WorkerHandler to add to the tracker
      */
     public void add(WorkerHandler workerHandler) {
-        if (workerHandler.getComponentID().component_type() == AWORKER)
+        if (workerHandler.getWorkerType() == A)
             availableAWorkers.add(workerHandler);
 
         else availableBWorkers.add(workerHandler);
@@ -101,7 +103,7 @@ public class WorkerTracker implements Observer {
     public void update(Object o) {
         if (o instanceof WorkerHandler handler)
         {
-            if (handler.getComponentID().component_type() == AWORKER) {
+            if (handler.getWorkerType() == A) {
                 occupiedAWorkers.remove(handler);
                 availableAWorkers.add(handler);
             }

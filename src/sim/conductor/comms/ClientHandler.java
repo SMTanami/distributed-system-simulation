@@ -107,11 +107,11 @@ public class ClientHandler {
         public void receive() {
             try {
                 Task incomingTask;
-                while ((incomingTask = (Task) objIn.readObject()).getTaskID() != -1) {
+                while ((incomingTask = (Task) objIn.readObject()).taskID() != -1) {
                     collectedTasks.add(incomingTask);
                     System.out.println("CONDUCTOR: RECEIVED TASK " + incomingTask);
                 }
-                System.out.printf("CONDUCTOR: Termination request by client %d... terminating", incomingTask.getClientID());
+                System.out.printf("CONDUCTOR: Termination request by client %d... terminating\n", incomingTask.clientID());
             }
             catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
@@ -144,7 +144,7 @@ public class ClientHandler {
             try {
                 Task completedTask;
                 while ((completedTask = completedTasks.take()) != null) {
-                    dataOut.writeInt(completedTask.getTaskID());
+                    dataOut.writeInt(completedTask.taskID());
                     System.out.println("CONDUCTOR: Confirmed " + completedTask + " with client");
                 }
 

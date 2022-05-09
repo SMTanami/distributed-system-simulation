@@ -40,7 +40,7 @@ public class TaskTracker {
         else{
             synchronized (this) {
                 Task t = tasks[takePoint];
-                tasksInProgress.put(t.getTaskID(), t);
+                tasksInProgress.put(t.taskID(), t);
                 tasks[takePoint] = null;
                 takePoint++;
                 return t;
