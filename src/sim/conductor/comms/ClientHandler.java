@@ -75,6 +75,7 @@ public class ClientHandler {
     private void terminate() {
         try {
             mySocket.close();
+            System.out.println("CONDUCTOR: Terminated Client " + myComponentID.refID());
         } catch (IOException e){
             e.printStackTrace();
         }
