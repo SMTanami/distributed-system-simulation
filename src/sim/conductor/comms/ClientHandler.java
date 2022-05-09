@@ -17,6 +17,9 @@ import java.util.concurrent.BlockingQueue;
  * and {@link TaskSender},this class will store tasks it receives from the appropriate client in a collection for the
  * Conductor to oversee (this class will have a reference to that collection via DIP), as well as store completed tasks
  * that have been processed by the overarching program in order to send them back to the respective client.
+ * <p>
+ * Once the ClientHandler receives word from the Client to terminate their connection, the ClientHandler will automatically
+ * shut down its client socket.
  */
 public class ClientHandler {
 
@@ -67,7 +70,7 @@ public class ClientHandler {
     }
 
     /**
-     * Closes client-communication-related resources, i.e. streams used to communicate to the client.
+     * Closes client socket, effectively killing both the {@link TaskSender} and the {@link TaskReceiver}.
      */
     private void terminate() {
         try {
@@ -98,7 +101,7 @@ public class ClientHandler {
     }
 
     /**
-     * @return the {@link sim.client.Client} that is handled by this ClientHandler's ComponentID
+     * @return the {@link ComponentID} belonging to this ClientHandler.
      */
     public ComponentID getComponentID() {
         return myComponentID;
@@ -108,6 +111,9 @@ public class ClientHandler {
      * The TaskReceiver class is a private class that is leveraged by its parent ClientHandler class. In order to retrieve
      * and send tasks to and from clients concurrently, the TaskCollector assumes the responsibility of retrieving
      * tasks using the parent ClientHandler's client sockets input stream.
+     * <p>
+     * Once the client sends word to end communications, this class will terminate the client socket using the
+     * {@code terminate} method.
      */
     private class TaskReceiver extends Thread implements Receiver {
 

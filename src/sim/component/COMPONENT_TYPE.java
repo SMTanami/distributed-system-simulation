@@ -1,9 +1,11 @@
 package sim.component;
 
+import sim.conductor.Conductor;
+
 /**
- * There are several types of components within this simulation. In order to identify which type of component connects
- * to the Conductor, they each pass a COMPONENT_TYPE value to their own {@link ComponentID}'s so that the COnductor
- * can identify what is what upon connection.
+ * There are two main components used within this simulation: Client and Worker. In order to identify which type of
+ * component connects to the {@link Conductor}, all components will have a {@link ComponentID} which will contain a reference to
+ * a component type. That ComponentID is then send to the conductor upon connection for identification.
  */
 public enum COMPONENT_TYPE {
     CLIENT,
