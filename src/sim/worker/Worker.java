@@ -1,5 +1,6 @@
 package sim.worker;
 
+import sim.conductor.Conductor;
 import sim.task.TASK_TYPE;
 import sim.task.Task;
 import sim.component.ComponentID;
@@ -11,6 +12,18 @@ import java.util.Random;
 
 import static sim.component.COMPONENT_TYPE.WORKER;
 
+/**
+ * This class acts as a Worker in a distributed system. It receives {@link Task} to complete from the {@link Conductor},
+ * performs the task (by sleeping for a certain amount of time) and returns the completed task to the Conductor.
+ * <p>
+ * Once the Worker has been started, it immediately notifies the Conductor of its request to connect to it. Once that
+ * connection is established, the Worker will be able to perform tasks for the Conductor. The amount of time to perform
+ * any particular task is dependent on the Worker's worker type. If the worker type matches the particular task's task
+ * type, then the Worker will take 2 seconds to complete the task. Otherwise, the Worker will take 10 seconds to
+ * complete the task.
+ * <p>
+ * To use this class, start it from the command line by passing in a host name, port number, and the worker type.
+ */
 public class Worker {
 
     private final Socket myWorkerSocket;
@@ -18,6 +31,10 @@ public class Worker {
     private final TASK_TYPE workerType;
     private ObjectOutputStream objOut;
 
+    /**
+     * @param workerSocket the socket that the Worker will use to send and receive tasks from the Conductor
+     * @param workerType the type of Worker
+     */
     public Worker(Socket workerSocket, TASK_TYPE workerType) {
         this.myWorkerSocket = workerSocket;
         this.workerType = workerType;
@@ -25,6 +42,10 @@ public class Worker {
         initializeStreams();
     }
 
+    /**
+     * This method is internally used by the Worker. It uses the worker socket used by this worker instance to
+     * instantiate an output stream to communicate with the Conductor.
+     */
     private void initializeStreams() {
         try {
             objOut = new ObjectOutputStream(myWorkerSocket.getOutputStream());
@@ -33,6 +54,10 @@ public class Worker {
         }
     }
 
+    /**
+     * Performs all of the Task work. Reads every task sent by the Conductor, performs the task (causing the Worker to
+     * sleep for a specified amount of time), and then writes the completed task back to the Conductor.
+     */
     public void begin() {
 
         notifyConductor();
@@ -62,6 +87,10 @@ public class Worker {
         }
     }
 
+    /**
+     * Sends the Worker's {@link ComponentID} and workerType to the Conductor to let the Conductor prepare for its
+     * oncoming connection.
+     */
     private void notifyConductor() {
         try {
             objOut.writeObject(componentID);
@@ -73,10 +102,16 @@ public class Worker {
         }
     }
 
+    /**
+     * @return componentID
+     */
     public ComponentID getComponentID() {
         return componentID;
     }
 
+    /**
+     * @return workerType
+     */
     public TASK_TYPE getWorkerType() {
         return workerType;
     }
