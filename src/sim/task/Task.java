@@ -6,12 +6,10 @@ public abstract class Task implements Serializable {
 
     private final int taskID;
     private final int clientID;
-    private boolean completionStatus;
 
     public Task(int clientID, int taskID) {
         this.clientID = clientID;
         this.taskID = taskID;
-        completionStatus = false;
     }
 
     public int getClientID() {
@@ -20,14 +18,6 @@ public abstract class Task implements Serializable {
 
     public int getTaskID() {
         return taskID;
-    }
-
-    public boolean getCompletionStatus() {
-        return completionStatus;
-    }
-
-    public void setTaskCompleted() {
-        completionStatus = true;
     }
 
     @Override

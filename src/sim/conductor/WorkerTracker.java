@@ -1,8 +1,8 @@
 package sim.conductor;
 
 
-import sim.conductor.cwcomms.WorkerHandler;
-import sim.obersver.Observer;
+import sim.conductor.comms.WorkerHandler;
+import sim.observer.Observer;
 
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -61,15 +61,18 @@ public class WorkerTracker implements Observer {
     }
 
     @Override
-    public void update(WorkerHandler handler) {
-        if (handler.getComponentID().component_type() == AWORKER) {
-            occupiedAWorkers.remove(handler);
-            availableAWorkers.add(handler);
-        }
+    public void update(Object o) {
+        if (o instanceof WorkerHandler handler)
+        {
+            if (handler.getComponentID().component_type() == AWORKER) {
+                occupiedAWorkers.remove(handler);
+                availableAWorkers.add(handler);
+            }
 
-        else{
-            occupiedBWorkers.remove(handler);
-            availableBWorkers.add(handler);
+            else{
+                occupiedBWorkers.remove(handler);
+                availableBWorkers.add(handler);
+            }
         }
     }
 }

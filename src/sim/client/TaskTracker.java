@@ -1,4 +1,4 @@
-package sim.client.tracking;
+package sim.client;
 
 import sim.task.Task;
 
@@ -7,10 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This class is to be used by Sender and Receiver threads as a point of reference for all sim.task related
- * operations.
+ * This class is to be used by Sender and Receiver threads as a point of reference for all {@link Task} related
+ * operations. The Client will use this class in order to track what tasks have been sent, received, and it all tasks
+ * that have been sent have been successfully returned by the {@link sim.conductor.Conductor}.
  */
-public class Tracker {
+public class TaskTracker {
 
     private int takePoint = 0;
     private int insertionPoint = 0;
@@ -21,7 +22,7 @@ public class Tracker {
     /**
      * @param tasks the tasks that are to be completed by the sim.client.
      */
-    public Tracker(Task[] tasks) {
+    public TaskTracker(Task[] tasks) {
         this.tasks = tasks;
         this.completedTasks = new Task[tasks.length];
     }
@@ -31,17 +32,19 @@ public class Tracker {
      * if no other sim.task is available.
      * @return The next Task that has yet to be completed or {@code null}
      */
-    public synchronized Task take() {
+    public Task take() {
 
         if (takePoint >= tasks.length)
             return null;
 
         else{
-            Task t = tasks[takePoint];
-            tasksInProgress.put(t.getTaskID(), t);
-            tasks[takePoint] = null;
-            takePoint++;
-            return t;
+            synchronized (this) {
+                Task t = tasks[takePoint];
+                tasksInProgress.put(t.getTaskID(), t);
+                tasks[takePoint] = null;
+                takePoint++;
+                return t;
+            }
         }
     }
 

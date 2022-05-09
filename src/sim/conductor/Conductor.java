@@ -1,9 +1,8 @@
 package sim.conductor;
 
-import sim.client.Client;
 import sim.component.ComponentID;
-import sim.conductor.cwcomms.ClientHandler;
-import sim.conductor.cwcomms.WorkerHandler;
+import sim.conductor.comms.ClientHandler;
+import sim.conductor.comms.WorkerHandler;
 import sim.task.Task;
 import sim.task.TaskA;
 
@@ -21,7 +20,7 @@ import static sim.component.COMPONENT_TYPE.CLIENT;
 
 public class Conductor {
 
-    private final ServerSocket myServer;
+    private final ServerSocket server;
     private final ComponentListener componentListener = new ComponentListener();
     private final Map<Integer, ClientHandler> cHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private final WorkerTracker workerTracker = new WorkerTracker();
@@ -33,7 +32,7 @@ public class Conductor {
             try {
                 Task nextTask = collectedTasks.take(); // Blocking call
                 WorkerHandler assignedWorker = assignWorker(nextTask); // Blocking call
-                System.out.println(assignedWorker + "was assigned " + nextTask);
+                System.out.println(assignedWorker + " was assigned " + nextTask);
                 assignedWorker.sendTask(nextTask);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -45,10 +44,7 @@ public class Conductor {
         try {
             Task completedTask;
             while ((completedTask = completedTasks.take()) != null) {
-                for (ClientHandler clientHandler : cHandlerMap.values()) {
-                    if (completedTask.getClientID() == clientHandler.getClientID())
-                        clientHandler.sendTask(completedTask);
-                }
+                cHandlerMap.get(completedTask.getClientID()).sendTask(completedTask);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -57,7 +53,7 @@ public class Conductor {
     });
 
     public Conductor(ServerSocket serverSocket) {
-        this.myServer = serverSocket;
+        this.server = serverSocket;
     }
 
     /**
@@ -73,16 +69,15 @@ public class Conductor {
         @Override
         public void run() {
 
-            while (!myServer.isClosed())
+            while (!server.isClosed())
             {
                 try {
-                    Socket incomingComponentSocket = myServer.accept();
+                    Socket incomingComponentSocket = Conductor.this.server.accept();
                     ObjectInputStream objIn = new ObjectInputStream(incomingComponentSocket.getInputStream());
                     ComponentID componentID = (ComponentID) objIn.readObject();
 
                     if (componentID.component_type() == CLIENT) {
-                        System.out.println("CONDUCTOR: COMPONENT RECEIVED (CLIENT)");
-                        System.out.println("ComponentID: " + componentID);
+                        System.out.println("CONDUCTOR: " + componentID + " connected...");
                         ClientHandler clientHandler = new ClientHandler(componentID.refID(),
                                 objIn, new DataOutputStream(incomingComponentSocket.getOutputStream()));
                         clientHandler.setCollections(collectedTasks);
@@ -91,8 +86,7 @@ public class Conductor {
                     }
 
                     else {
-                        System.out.println("CONDUCTOR: COMPONENT RECEIVED (WORKER)");
-                        System.out.println("ComponentID: " + componentID);
+                        System.out.println("CONDUCTOR: COMPONENT RECEIVED " + componentID + " connected...");
                         WorkerHandler workerHandler = new WorkerHandler(componentID, objIn,
                                 new ObjectOutputStream(incomingComponentSocket.getOutputStream()));
                         workerHandler.setCompletedTaskQueue(completedTasks);
@@ -112,13 +106,8 @@ public class Conductor {
         componentListener.start();
         taskAssigner.start();
         taskConfirmer.start();
-
-        componentListener.join();
-        taskAssigner.join();
-        taskConfirmer.join();
     }
 
-    
     private WorkerHandler assignWorker(Task task) {
 
         if (task instanceof TaskA) {
@@ -171,7 +160,6 @@ public class Conductor {
         }
 
         Conductor conductor = new Conductor(new ServerSocket(Integer.parseInt(args[0])));
-        //Conductor conductor = new Conductor(new ServerSocket(30121));
         conductor.begin();
     }
 }

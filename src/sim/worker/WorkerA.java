@@ -2,22 +2,20 @@ package sim.worker;
 
 import sim.task.Task;
 import sim.task.TaskA;
-import sim.component.Component;
 import sim.component.ComponentID;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.net.Socket;
 import java.util.Random;
 
 import static sim.component.COMPONENT_TYPE.AWORKER;
 
-public class WorkerA implements Component, Worker {
+public class WorkerA {
 
-    private transient final Socket myWorkerSocket;
-    private transient ObjectOutputStream objOut;
+    private final Socket myWorkerSocket;
     private final ComponentID COMPONENT_ID;
+    private ObjectOutputStream objOut;
 
     public WorkerA(Socket workerSocket) {
         myWorkerSocket = workerSocket;
@@ -29,7 +27,7 @@ public class WorkerA implements Component, Worker {
         try {
             objOut = new ObjectOutputStream(myWorkerSocket.getOutputStream());
         } catch (IOException e) {
-            System.out.println("WorkerA: Could not instantiate streams");
+            e.printStackTrace();
         }
     }
 
@@ -62,8 +60,7 @@ public class WorkerA implements Component, Worker {
         }
     }
 
-    @Override
-    public void notifyConductor() {
+    private void notifyConductor() {
         try {
             objOut.writeObject(COMPONENT_ID);
         }
@@ -75,15 +72,15 @@ public class WorkerA implements Component, Worker {
 
     public static void main(String[] args) throws IOException {
 
-//        if (args.length != 2) {
-//            System.err.println("Usage: java Client <hostName> <portNumber>");
-//            System.exit(1);
-//        }
-//
-//        String hostName = args[0];
-//        int portNumber = Integer.parseInt(args[1]);
+        if (args.length != 2) {
+            System.err.println("Usage: java Client <hostName> <portNumber>");
+            System.exit(1);
+        }
 
-        WorkerA a = new WorkerA(new Socket("127.0.0.1", 30121));
+        String hostName = args[0];
+        int portNumber = Integer.parseInt(args[1]);
+
+        WorkerA a = new WorkerA(new Socket(hostName, portNumber));
         a.begin();
     }
 }
