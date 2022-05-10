@@ -168,9 +168,9 @@ public class Conductor {
      * moment, a Worker of a different type may be chosen under the following circumstances:
      * <p>
      * 1) there are a sufficient number of tasks remaining so that all the Workers of the matching type would be occupied during the extra time that
-     * the Worker whose type doesn't match can complete the task
+     * the Worker whose type doesn't match can complete the task,
      * <p>
-     * 2) all of these tasks are of the same type as the given task
+     * 2) all of these tasks are of the same type as the given task,
      * <p>
      * 3) a Worker of a different type is presently available. In the event that any of these conditions is false, the 
      * method will wait until a Worker of a similar type to the given task becomes available.
