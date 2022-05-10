@@ -111,7 +111,7 @@ public class Worker {
     }
 
     /**
-     * @return the Worker's preffered {@link TASK_TYPE}.
+     * @return the Worker's preferred {@link TASK_TYPE}.
      */
     public TASK_TYPE getWorkerType() {
         return workerType;
