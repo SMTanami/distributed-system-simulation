@@ -1,11 +1,13 @@
 package sim.conductor;
 
+import sim.client.Client;
 import sim.comms.Receiver;
 import sim.component.ComponentID;
 import sim.conductor.comms.ClientHandler;
 import sim.conductor.comms.WorkerHandler;
 import sim.task.TASK_TYPE;
 import sim.task.Task;
+import sim.worker.Worker;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -76,28 +78,52 @@ public class Conductor {
                     ComponentID componentID = (ComponentID) objIn.readObject();
 
                     if (componentID.component_type() == CLIENT) {
-                        System.out.println("CONDUCTOR: " + componentID + " connected...");
-                        ClientHandler clientHandler = new ClientHandler(componentID, incomingComponentSocket, objIn);
-                        clientHandler.setCollections(collectedTasks);
-                        clientHandlerMap.put(componentID.refID(), clientHandler);
-                        clientHandler.start();
+                        establishClientHandler(incomingComponentSocket, objIn, componentID);
                     }
 
                     else {
-                        System.out.println("CONDUCTOR: COMPONENT RECEIVED " + componentID + " connected...");
-                        TASK_TYPE workerType = (TASK_TYPE) objIn.readObject();
-                        WorkerHandler workerHandler = new WorkerHandler(componentID, incomingComponentSocket,
-                                workerType, objIn);
-                        workerHandler.setCompletedTaskQueue(completedTasks);
-                        workerTracker.add(workerHandler);
-                        workerHandler.register(workerTracker);
-                        workerHandler.start();
+                        establishWorkerHandler(incomingComponentSocket, objIn, componentID);
                     }
 
                 } catch (IOException | ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }
+        }
+
+        /**
+         * Establishes a {@link WorkerHandler} that will assume responsibility for communicating to the connecting
+         * {@link Worker} from this point forward.
+         * @param incomingComponentSocket the connecting component socket
+         * @param objIn the object input stream used to receive component information upon connection
+         * @param componentID the components {@link ComponentID} used to identify the components Handler
+         * @throws IOException any of the usual I/O exceptions
+         * @throws ClassNotFoundException if the received object is not an instance of {@link TASK_TYPE}
+         */
+        private void establishWorkerHandler(Socket incomingComponentSocket, ObjectInputStream objIn, ComponentID componentID) throws IOException, ClassNotFoundException {
+            System.out.println("CONDUCTOR: COMPONENT RECEIVED " + componentID + " connected...");
+            TASK_TYPE workerType = (TASK_TYPE) objIn.readObject();
+            WorkerHandler workerHandler = new WorkerHandler(componentID, incomingComponentSocket,
+                    workerType, objIn);
+            workerHandler.setCompletedTaskQueue(completedTasks);
+            workerTracker.add(workerHandler);
+            workerHandler.register(workerTracker);
+            workerHandler.start();
+        }
+
+        /**
+         * Establishes a {@link ClientHandler} that will assume responsibility for communicating to the connecting
+         * {@link Client} from this point forward.
+         * @param incomingComponentSocket the connecting component socket
+         * @param objIn the object input stream used to receive component information upon connection
+         * @param componentID the components {@link ComponentID} used to identify the components Handler
+         */
+        private void establishClientHandler(Socket incomingComponentSocket, ObjectInputStream objIn, ComponentID componentID) {
+            System.out.println("CONDUCTOR: " + componentID + " connected...");
+            ClientHandler clientHandler = new ClientHandler(componentID, incomingComponentSocket, objIn);
+            clientHandler.setCollections(collectedTasks);
+            clientHandlerMap.put(componentID.refID(), clientHandler);
+            clientHandler.start();
         }
     }
 
