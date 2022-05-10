@@ -159,12 +159,28 @@ public class Conductor {
 
     /**
      * This is the algorithm of the Conductor. Based on certain variables, the method will choose the best Worker to
-     * work on the given task.
+     * work on the given task. (If only one type of Worker is connected to the Conductor, then a Worker of that type 
+     * must be chosen.)
+     * <p>
+     * Since a Worker whose type matches the type of an assigned task takes only 2 seconds to complete the task, while a
+     * Worker whose type doesn't match takes 10 seconds to complete the task, the ideal choice of Worker will be of a 
+     * similar type to the given task. However, if no such Worker is available at the present moment, a Worker of a 
+     * different type may be chosen under the following circumstances: 1) there are a sufficient number of tasks 
+     * remaining so that all the Workers of the matching type would be occupied during the extra time that the Worker 
+     * whose type doesn't match can complete the task, 2) all of these tasks are of the same type as the given task, and
+     * 3) a Worker of a different type is presently available. In the event that any of these conditions is false, the 
+     * method will wait until a Worker of a similar type to the given task becomes available.
      * @param task the task that requires assignment
      * @return a WorkerHandler that will handle the communication with the chosen worker meant to complete the given task
      */
     private WorkerHandler assignWorker(Task task) {
 
+        if (!workerTracker.isAConnected())
+            return workerTracker.getBHandler();
+        
+        if (!workerTracker.isBConnected())
+            return workerTracker.getAHandler();
+        
         if (task.type() == A) {
             if (workerTracker.isAFree())
                 return workerTracker.getAHandler();
@@ -173,49 +189,42 @@ public class Conductor {
                 if (workerTracker.isBFree())
                     return workerTracker.getBHandler();
             }
-
-            if (workerTracker.isAConnected()) {
-                System.out.println("CONDUCTOR: Waiting on Worker of type A");
-                return workerTracker.getAHandler();
-            }
-
-            return workerTracker.getBHandler();
+            
+            System.out.println("CONDUCTOR: Waiting on Worker of type A");
+            return workerTracker.getAHandler();
         }
 
         else {
             if (workerTracker.isBFree())
                 return workerTracker.getBHandler();
 
-            if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(task.type(), workerTracker.bCount()))
+            if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(task.type(), workerTracker.bCount())) {
                 if (workerTracker.isAFree())
                     return workerTracker.getAHandler();
-
-            if (workerTracker.isBConnected()) {
-                System.out.println("CONDUCTOR: Waiting on Worker of type B");
-                return workerTracker.getBHandler();
             }
-
-            return workerTracker.getAHandler();
+            
+            System.out.println("CONDUCTOR: Waiting on Worker of type B");
+            return workerTracker.getBHandler();
         }
     }
 
     /**
-     * Method to be internally used by the Conductor. Tests to see if the next five tasks in the queue are of the same type
-     * as the given queue.
-     * @param taskType the task type to be assigned a worker
-     * @param length the length of the queue
-     * @return true if the next five tasks in the queue are the same, false otherwise
+     * Method to be internally used by the Conductor. Tests to see if the next specified number of tasks in the queue 
+     * are of the same type as the given task type.
+     * @param taskType the task type to be compared
+     * @param workersOfSimilarType the number of workers of a similar type to the taskType
+     * @return true if the next specified number of tasks in the queue are of the same type as the task type, otherwise false
      */
-    private boolean areNextSame(TASK_TYPE taskType, int length) {
+    private boolean areNextSame(TASK_TYPE taskType, int workersOfSimilarType) {
         AtomicBoolean result = new AtomicBoolean(true);
-        collectedTasks.stream().limit(5L * length).forEachOrdered(futureTask -> {
+        collectedTasks.stream().limit(5L * workersOfSimilarType).forEachOrdered(futureTask -> {
             if (futureTask.type() != taskType)
                 result.set(false);
         });
 
         return result.get();
     }
-
+    
     /**
      * Initiate the collection of clients and retrieval and processing of their tasks
      * @param args list of CL arguments. Should only contain a port number.
