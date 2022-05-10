@@ -109,44 +109,6 @@ public class ClientHandler {
     }
 
     /**
-     * The TaskReceiver class is a private class that is leveraged by its parent ClientHandler class. In order to retrieve
-     * and send tasks to and from clients concurrently, the TaskCollector assumes the responsibility of retrieving
-     * tasks using the parent ClientHandler's client sockets input stream.
-     * <p>
-     * Once the client sends word to end communications, this class will terminate the client socket using the
-     * {@code terminate} method.
-     */
-    private class TaskReceiver extends Thread implements Receiver {
-
-        /**
-         * Receives incoming tasks from this client socket and stores them in the parent ClientHandler's Task Store.
-         */
-        @Override
-        public void run() {
-            receive();
-        }
-
-        @Override
-        public void receive() {
-            try {
-                Task incomingTask;
-                while ((incomingTask = (Task) objIn.readObject()).taskID() != -1) {
-                    collectedTasks.add(incomingTask);
-                    System.out.println("CONDUCTOR: RECEIVED TASK " + incomingTask);
-                }
-                System.out.printf("CONDUCTOR: Termination request by client %d... terminating\n", incomingTask.clientID());
-            }
-            catch (IOException | ClassNotFoundException e) {
-                if (e instanceof IOException)
-                    System.out.printf("CONDUCTOR: Client %d has disconnected...\n", myComponentID.refID());
-            }
-            finally {
-                terminate();
-            }
-        }
-    }
-
-    /**
      * The TaskConfirmer class is a private class that is leveraged by its parent ClientHandler class. In order to retrieve
      * and send tasks to and from clients concurrently, the TaskConfirmer assumes the responsibility of  confirming
      * completed tasks with the given client via the parent ClientHandler's client sockets output stream.
@@ -173,6 +135,44 @@ public class ClientHandler {
 
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * The TaskReceiver class is a private class that is leveraged by its parent ClientHandler class. In order to retrieve
+     * and send tasks to and from clients concurrently, the TaskCollector assumes the responsibility of retrieving
+     * tasks using the parent ClientHandler's client sockets input stream.
+     * <p>
+     * Once the client sends word to end communications, this class will terminate the client socket using the
+     * {@code terminate} method.
+     */
+    private class TaskReceiver extends Thread implements Receiver {
+
+        /**
+         * Receives incoming tasks from this client socket and stores them in the parent ClientHandler's Task Store.
+         */
+        @Override
+        public void run() {
+            receive();
+        }
+
+        @Override
+        public void receive() {
+            try {
+                Task incomingTask;
+                while ((incomingTask = (Task) objIn.readObject()).taskID() != -1) {
+                    collectedTasks.add(incomingTask);
+                    System.out.println("CONDUCTOR: RECEIVED " + incomingTask);
+                }
+                System.out.printf("CONDUCTOR: Termination request by client %d... terminating\n", incomingTask.clientID());
+            }
+            catch (IOException | ClassNotFoundException e) {
+                if (e instanceof IOException)
+                    System.out.printf("CONDUCTOR: Client %d has disconnected...\n", myComponentID.refID());
+            }
+            finally {
+                terminate();
             }
         }
     }

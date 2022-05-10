@@ -12,8 +12,7 @@ import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static sim.component.COMPONENT_TYPE.CLIENT;
@@ -41,20 +40,7 @@ public class Conductor {
     private final Map<Integer, ClientHandler> clientHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private final BlockingQueue<Task> collectedTasks = new ArrayBlockingQueue<>(100);
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
-
-    private final Thread taskAssigner = new Thread(() -> {
-        while (true) {
-            try {
-                Task nextTask = collectedTasks.take(); // Blocking call
-                WorkerHandler assignedWorker = assignWorker(nextTask); // Blocking call
-                System.out.printf("CONDUCTOR: Worker(%d) was assigned %s\n", assignedWorker.getComponentID().refID(), nextTask);
-                assignedWorker.sendTask(nextTask);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                System.out.println("Conductor was interrupted");
-            }
-        }
-    });
+    private final ExecutorService assignmentService = Executors.newFixedThreadPool(2);
     private final Thread clientUpdater = new Thread(() -> {
         try {
             Task completedTask;
@@ -66,6 +52,7 @@ public class Conductor {
             System.out.println("TaskConfirmer was interrupted");
         }
     });
+
 
     /**
      * @param serverSocket the server socket that all components will use to connect and communicate to
@@ -130,7 +117,19 @@ public class Conductor {
      */
     public void begin() {
         componentListener.start();
-        taskAssigner.start();
+        assignmentService.execute(() -> {
+            try {
+                Task receivedTask;
+                while ((receivedTask = collectedTasks.take()) != null) {
+                    WorkerHandler assignedWorker = assignWorker(receivedTask); // Blocking call
+                    System.out.printf("CONDUCTOR: Worker(%d) was assigned %s\n", assignedWorker.getComponentID().refID(), receivedTask);
+                    assignedWorker.sendTask(receivedTask);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                System.out.println("Conductor was interrupted");
+            }
+        });
         clientUpdater.start();
     }
 

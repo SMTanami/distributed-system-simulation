@@ -125,7 +125,7 @@ public class WorkerHandler implements Observable {
             try {
                 Task taskToSend;
                 while ((taskToSend = tasksToSend.take()) != null) {
-                    System.out.println("CONDUCTOR: Sent task " + taskToSend + " to " + myComponentID);
+                    System.out.println("CONDUCTOR: Sent " + taskToSend + " to Worker" + myComponentID.refID());
                     objOut.writeObject(taskToSend);
                 }
             }
