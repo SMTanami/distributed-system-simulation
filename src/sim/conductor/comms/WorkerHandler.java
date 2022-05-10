@@ -83,7 +83,7 @@ public class WorkerHandler implements Observable {
     }
 
     /**
-     * @return the {@link sim.worker.Worker} or {@link sim.worker.Worker} that is handled by this WorkerHandler's ComponentID
+     * @return the componentID of the {@link Worker} that is handled by this WorkerHandler.
      */
     public ComponentID getComponentID() {
         return myComponentID;

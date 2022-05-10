@@ -3,83 +3,84 @@ package sim.conductor;
 
 import sim.conductor.comms.WorkerHandler;
 import sim.observer.Observer;
-import sim.task.TASK_TYPE;
+import sim.task.Task;
+import sim.worker.Worker;
 
-import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static sim.component.COMPONENT_TYPE.WORKER;
 import static sim.task.TASK_TYPE.A;
 
 /**
- * This class is used by the conductor to track all connected Workers via their respective WorkerHandlers. Whenever
- * a WorkerHandler of a specific type connects, it is added to the WorkerTracker and stored in a collection representing
- * the connected Worker's worker type: A or B.
+ * This class is used by the conductor to track all connected {@link Worker}s via their respective {@link WorkerHandler}.
+ * Whenever a Worker of a specific type connects,a WorkerHandler is created, and it is added to the WorkerTracker and stored in a
+ * {@link BlockingQueue} representing the connected Worker's worker type: A or B.
  * <p>
- * When a WorkerHandler is assigned a task by the Conductor, the tracker moves it to an occupied list. When that WorkerHandler
- * completes its task, it notifies the WorkerTracker and in response the tracker then removes the WorkerHandler from the
- * occupied list and places it within one of the available Worker queues. Each queue representing either A and B workers.
+ * When a WorkerHandler is assigned a {@link Task} by the Conductor, it is removed form the internal blocking queue.
+ * When that WorkerHandler completes its task, it notifies the WorkerTracker and in response the tracker returns it
+ * within one of the Worker queues (depending on type, of course).
  */
 public class WorkerTracker implements Observer {
 
+    private final AtomicInteger aCount = new AtomicInteger(0);
+    private final AtomicInteger bCount = new AtomicInteger(0);
     private final BlockingQueue<WorkerHandler> availableAWorkers = new ArrayBlockingQueue<>(25);
     private final BlockingQueue<WorkerHandler> availableBWorkers = new ArrayBlockingQueue<>(25);
-    private boolean AWorkerExists = false;
-    private boolean BWorkerExists = false;
 
     /**
      * Adds a WorkerHandler to the tracker. The tracker will deal with the specific type of WorkerHandler that is being added.
-     * @param workerHandler the WorkerHandler to add to the tracker
+     * Additionally, increments a counter that is used to maintain the amount of WorkerHandlers of that type that have connected to the
+     * {@link Conductor}.
      */
     public void add(WorkerHandler workerHandler) {
         if (workerHandler.getWorkerType() == A) {
             availableAWorkers.add(workerHandler);
-            AWorkerExists = true;
+            aCount.getAndIncrement();
         }
 
         else {
             availableBWorkers.add(workerHandler);
-            BWorkerExists = true;
+            bCount.getAndIncrement();
         }
     }
 
     /**
-     * @return true if a {@link sim.worker.Worker} of type A has connected to the system.
+     * @return true if a {@link Worker} of type A has connected to the system, false otherwise.
      */
-    public boolean isAConnected() { return AWorkerExists; }
+    public boolean isAConnected() { return aCount.get() > 0; }
 
     /**
-     * @return true if a {@link sim.worker.Worker} of type B has connected to the system.
+     * @return true if a {@link Worker} of type B has connected to the system, false otherwise.
      */
-    public boolean isBConnected() { return BWorkerExists; }
+    public boolean isBConnected() { return bCount.get() > 0; }
 
     /**
-     * Checks the head of the availableWorker queue to see if an AWorker is available.
+     * Checks the queue containing A workers to see if at least one is available.
      * @return true if an AWorker is available, false otherwise
      */
     public boolean isAFree() {
-        return availableAWorkers.peek() != null;
+        return availableAWorkers.size() > 0;
     }
 
     /**
-     * Checks the head of the availableWorker queue to see if an BWorker is available.
+     * Checks the queue containing B workers to see if at least one is available.
      * @return true if an BWorker is available, false otherwise
      */
-    public boolean isBFree() { return availableBWorkers.peek() != null; }
+    public boolean isBFree() { return availableBWorkers.size() > 0; }
 
     /**
      * @return the amount of AWorkers being tracked by the tracker. Includes occupied and available workers into the count.
      */
-    public synchronized int aCount() {
-        return availableAWorkers.size();
+    public int aCount() {
+        return aCount.get();
     }
 
     /**
      * @return the amount of BWorkers being tracked by the tracker. Includes occupied and available workers into the count.
      */
-    public synchronized int bCount() {
-        return availableBWorkers.size();
+    public int bCount() {
+        return bCount.get();
     }
 
     /**

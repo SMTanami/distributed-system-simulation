@@ -23,13 +23,13 @@ import static sim.task.TASK_TYPE.A;
  * therefore the responsibility of this class to conduct the event flow of the simulation. In order to achieve this in
  * an asynchronous manner, the Conductor heavily leverages multithreading.
  * <p>
- * The threads that enable this behavior are: {@link ComponentListener}, and local Thread fields named: taskAssigner and
- * clientUpdater. The task assigner is the main function of the conductor. Using its algorithm, the conductor decides which
- * worker is assigned what task. The clientUpdater Thread is constantly getting completed tasks from workers and sending them
+ * The threads that enable this behavior are: {@link ComponentListener}, and local ExecutorService fields named: assignmentService and
+ * updateService. The assignmentService executes the main function of the conductor. Using its algorithm, the conductor decides which
+ * {@link sim.worker.Worker} is assigned what task. The updateService is constantly getting completed tasks from workers and sending them
  * back to the appropriate {@link sim.client.Client}.
  * <p>
  * In order to know which Worker and Client to communicate with, the Conductor maintains a collection of ClientHandlers
- * and employs a {@link WorkerTracker} to keep track of WorkerHandlers, making use of their componentIDs to know which
+ * and employs a {@link WorkerTracker} to keep track of WorkerHandler, making use of their componentIDs to know which
  * specific Client or Worker to communicate to.
  */
 public class Conductor {
@@ -102,7 +102,7 @@ public class Conductor {
     }
 
     /**
-     * Starts all contained threads: {@link ComponentListener}, taskAssigner, and clientUpdater.
+     * Starts all contained threads and thread-pools: {@link ComponentListener}, the assignmentService and the updateService.
      */
     public void begin() {
         componentListener.start();
@@ -143,7 +143,7 @@ public class Conductor {
             if (workerTracker.isAFree())
                 return workerTracker.getAHandler();
 
-            if (collectedTasks.size() > 5 * workerTracker.aCount() && areNextSame(task, workerTracker.aCount())) {
+            if (collectedTasks.size() > 5 * workerTracker.aCount() && areNextSame(task.type(), workerTracker.aCount())) {
                 if (workerTracker.isBFree())
                     return workerTracker.getBHandler();
             }
@@ -160,8 +160,8 @@ public class Conductor {
             if (workerTracker.isBFree())
                 return workerTracker.getBHandler();
 
-            if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(task, workerTracker.bCount()))
-                if (workerTracker.isBFree())
+            if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(task.type(), workerTracker.bCount()))
+                if (workerTracker.isAFree())
                     return workerTracker.getAHandler();
 
             if (workerTracker.isBConnected()) {
@@ -176,14 +176,14 @@ public class Conductor {
     /**
      * Method to be internally used by the Conductor. Tests to see if the next five tasks in the queue are of the same type
      * as the given queue.
-     * @param task the task to be assigned a worker
+     * @param taskType the task type to be assigned a worker
      * @param length the length of the queue
      * @return true if the next five tasks in the queue are the same, false otherwise
      */
-    private boolean areNextSame(Task task, int length) {
+    private boolean areNextSame(TASK_TYPE taskType, int length) {
         AtomicBoolean result = new AtomicBoolean(true);
-        completedTasks.stream().limit(5L * length).forEachOrdered(t -> {
-            if (t.type() == task.type())
+        collectedTasks.stream().limit(5L * length).forEachOrdered(futureTask -> {
+            if (futureTask.type() != taskType)
                 result.set(false);
         });
 

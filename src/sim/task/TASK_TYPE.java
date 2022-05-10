@@ -4,7 +4,7 @@ import sim.client.Client;
 
 /**
  * There are two different types of {@link Task} that can be requested by a {@link Client}. In order to identify which
- * type of Task is being requested, each Task contains a type.
+ * type of Task is being requested, each Task contains a type of A or B.
  */
 public enum TASK_TYPE {
     A,

@@ -14,13 +14,13 @@ import static sim.component.COMPONENT_TYPE.WORKER;
 
 /**
  * This class acts as a Worker in a distributed system. It receives {@link Task} to complete from the {@link Conductor},
- * performs the task (by sleeping for a certain amount of time) and returns the completed task to the Conductor.
+ * performs the task (by sleeping for a certain amount of time), and returns the completed task to the Conductor.
  * <p>
  * Once the Worker has been started, it immediately notifies the Conductor of its request to connect to it. Once that
  * connection is established, the Worker will be able to perform tasks for the Conductor. The amount of time to perform
- * any particular task is dependent on the Worker's worker type. If the worker type matches the particular task's task
- * type, then the Worker will take 2 seconds to complete the task. Otherwise, the Worker will take 10 seconds to
- * complete the task.
+ * any particular task is dependent on the Worker's worker type. If the worker type matches the particular task's
+ * {@link TASK_TYPE}, then the Worker will take 2 seconds to complete the task. Otherwise, the Worker will take 10 seconds
+ * to do so.
  * <p>
  * To use this class, start it from the command line by passing in a host name, port number, and the worker type.
  */
@@ -65,15 +65,16 @@ public class Worker {
         {
             Task task;
             while ((task = (Task) objIn.readObject()) != null) {
-                System.out.printf("WORKER(%s) %d: Received task of type %s\n", workerType, componentID.refID(), task.type());
 
-                if (task.type() == workerType) {
-                    System.out.printf("WORKER(%s) %d: This task should take %d seconds\n", workerType, componentID.refID(), 2);
+                if (task.type() == workerType){
+                    System.out.printf("WORKER(%s) %d: Received task of type %s. This task should take %d seconds\n",
+                            workerType, componentID.refID(), task.type(), 2);
                     Thread.sleep(2000);
                 }
 
                 else {
-                    System.out.printf("WORKER(%s) %d: This task should take %d seconds\n", workerType, componentID.refID(), 10);
+                    System.out.printf("WORKER(%s) %d: Received task of type %s. This task should take %d seconds\n",
+                            workerType, componentID.refID(), task.type(), 10);
                     Thread.sleep(10000);
                 }
 
@@ -103,14 +104,14 @@ public class Worker {
     }
 
     /**
-     * @return componentID
+     * @return the Worker's component ID.
      */
     public ComponentID getComponentID() {
         return componentID;
     }
 
     /**
-     * @return workerType
+     * @return the Worker's preffered {@link TASK_TYPE}.
      */
     public TASK_TYPE getWorkerType() {
         return workerType;
@@ -125,9 +126,12 @@ public class Worker {
 
         String hostName = args[0];
         int portNumber = Integer.parseInt(args[1]);
-        TASK_TYPE workerType = TASK_TYPE.valueOf(args[2]);
-
-        Worker worker = new Worker(new Socket(hostName, portNumber), workerType);
-        worker.begin();
+        try{
+            TASK_TYPE workerType = TASK_TYPE.valueOf(args[2]);
+            Worker worker = new Worker(new Socket(hostName, portNumber), workerType);
+            worker.begin();
+        } catch (IllegalArgumentException e) {
+            System.err.println("Usage: last argument <worker type> must be A or B");
+        }
     }
 }
