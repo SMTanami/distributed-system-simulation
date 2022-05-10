@@ -41,18 +41,7 @@ public class Conductor {
     private final BlockingQueue<Task> collectedTasks = new ArrayBlockingQueue<>(100);
     private final BlockingQueue<Task> completedTasks = new ArrayBlockingQueue<>(100);
     private final ExecutorService assignmentService = Executors.newFixedThreadPool(2);
-    private final Thread clientUpdater = new Thread(() -> {
-        try {
-            Task completedTask;
-            while ((completedTask = completedTasks.take()) != null) {
-                clientHandlerMap.get(completedTask.clientID()).sendTask(completedTask);
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            System.out.println("TaskConfirmer was interrupted");
-        }
-    });
-
+    private final ExecutorService updateService = Executors.newFixedThreadPool(1);
 
     /**
      * @param serverSocket the server socket that all components will use to connect and communicate to
@@ -130,7 +119,16 @@ public class Conductor {
                 System.out.println("Conductor was interrupted");
             }
         });
-        clientUpdater.start();
+        updateService.execute(() -> {
+            try {
+                Task completedTask;
+                while ((completedTask = completedTasks.take()) != null) {
+                    clientHandlerMap.get(completedTask.clientID()).sendTask(completedTask);
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -145,25 +143,33 @@ public class Conductor {
             if (workerTracker.isAFree())
                 return workerTracker.getAHandler();
 
-            else if (collectedTasks.size() > 5 * workerTracker.aCount() && areNextSame(task, workerTracker.aCount())) {
+            if (collectedTasks.size() > 5 * workerTracker.aCount() && areNextSame(task, workerTracker.aCount())) {
                 if (workerTracker.isBFree())
                     return workerTracker.getBHandler();
             }
 
-            System.out.println("CONDUCTOR: Waiting on Worker of type A");
-            return workerTracker.getAHandler();
+            if (workerTracker.isAConnected()) {
+                System.out.println("CONDUCTOR: Waiting on Worker of type A");
+                return workerTracker.getAHandler();
+            }
+
+            return workerTracker.getBHandler();
         }
 
         else {
             if (workerTracker.isBFree())
                 return workerTracker.getBHandler();
 
-            else if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(task, workerTracker.bCount()))
+            if (collectedTasks.size() > 5 * workerTracker.bCount() && areNextSame(task, workerTracker.bCount()))
                 if (workerTracker.isBFree())
                     return workerTracker.getAHandler();
 
-            System.out.println("CONDUCTOR: Waiting on Worker of type B");
-            return workerTracker.getBHandler();
+            if (workerTracker.isBConnected()) {
+                System.out.println("CONDUCTOR: Waiting on Worker of type B");
+                return workerTracker.getBHandler();
+            }
+
+            return workerTracker.getAHandler();
         }
     }
 

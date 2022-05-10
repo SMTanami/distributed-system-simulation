@@ -68,13 +68,13 @@ public class Worker {
                 System.out.printf("WORKER(%s) %d: Received task of type %s\n", workerType, componentID.refID(), task.type());
 
                 if (task.type() == workerType) {
-                    Thread.sleep(2000);
                     System.out.printf("WORKER(%s) %d: This task should take %d seconds\n", workerType, componentID.refID(), 2);
+                    Thread.sleep(2000);
                 }
 
                 else {
-                    Thread.sleep(10000);
                     System.out.printf("WORKER(%s) %d: This task should take %d seconds\n", workerType, componentID.refID(), 10);
+                    Thread.sleep(10000);
                 }
 
                 System.out.printf("WORKER(%s) %d: Completed task %s\n", workerType, componentID.refID(), task);

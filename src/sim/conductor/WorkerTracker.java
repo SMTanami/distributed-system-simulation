@@ -23,21 +23,36 @@ import static sim.task.TASK_TYPE.A;
  */
 public class WorkerTracker implements Observer {
 
-    private final ArrayList<WorkerHandler> occupiedAWorkers = new ArrayList<>();
-    private final ArrayList<WorkerHandler> occupiedBWorkers = new ArrayList<>();
     private final BlockingQueue<WorkerHandler> availableAWorkers = new ArrayBlockingQueue<>(25);
     private final BlockingQueue<WorkerHandler> availableBWorkers = new ArrayBlockingQueue<>(25);
+    private boolean AWorkerExists = false;
+    private boolean BWorkerExists = false;
 
     /**
      * Adds a WorkerHandler to the tracker. The tracker will deal with the specific type of WorkerHandler that is being added.
      * @param workerHandler the WorkerHandler to add to the tracker
      */
     public void add(WorkerHandler workerHandler) {
-        if (workerHandler.getWorkerType() == A)
+        if (workerHandler.getWorkerType() == A) {
             availableAWorkers.add(workerHandler);
+            AWorkerExists = true;
+        }
 
-        else availableBWorkers.add(workerHandler);
+        else {
+            availableBWorkers.add(workerHandler);
+            BWorkerExists = true;
+        }
     }
+
+    /**
+     * @return true if a {@link sim.worker.Worker} of type A has connected to the system.
+     */
+    public boolean isAConnected() { return AWorkerExists; }
+
+    /**
+     * @return true if a {@link sim.worker.Worker} of type B has connected to the system.
+     */
+    public boolean isBConnected() { return BWorkerExists; }
 
     /**
      * Checks the head of the availableWorker queue to see if an AWorker is available.
@@ -56,26 +71,23 @@ public class WorkerTracker implements Observer {
     /**
      * @return the amount of AWorkers being tracked by the tracker. Includes occupied and available workers into the count.
      */
-    public int aCount() {
-        return availableAWorkers.size() + occupiedAWorkers.size();
+    public synchronized int aCount() {
+        return availableAWorkers.size();
     }
 
     /**
      * @return the amount of BWorkers being tracked by the tracker. Includes occupied and available workers into the count.
      */
-    public int bCount() {
-        return availableBWorkers.size() + occupiedBWorkers.size();
+    public synchronized int bCount() {
+        return availableBWorkers.size();
     }
 
     /**
      * @return a WorkerHandler that is associated with an AWorker
      */
     public WorkerHandler getAHandler() {
-
         try {
-            WorkerHandler handler = availableAWorkers.take();
-            occupiedAWorkers.add(handler);
-            return handler;
+            return availableAWorkers.take();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -87,9 +99,7 @@ public class WorkerTracker implements Observer {
     public WorkerHandler getBHandler() {
 
         try {
-            WorkerHandler handler = availableBWorkers.take();
-            occupiedBWorkers.add(handler);
-            return handler;
+            return availableBWorkers.take();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -101,17 +111,13 @@ public class WorkerTracker implements Observer {
      */
     @Override
     public void update(Object o) {
-        if (o instanceof WorkerHandler handler)
-        {
-            if (handler.getWorkerType() == A) {
-                occupiedAWorkers.remove(handler);
-                availableAWorkers.add(handler);
-            }
+        if (o instanceof WorkerHandler handler) {
 
-            else{
-                occupiedBWorkers.remove(handler);
-                availableBWorkers.add(handler);
-            }
+            if (handler.getWorkerType() == A)
+                availableAWorkers.add(handler);
+
+            else availableBWorkers.add(handler);
+
         }
     }
 }
