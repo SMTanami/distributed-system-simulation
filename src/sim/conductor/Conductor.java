@@ -160,14 +160,18 @@ public class Conductor {
     /**
      * This is the algorithm of the Conductor. Based on certain variables, the method will choose the best Worker to
      * work on the given task. (If only one type of Worker is connected to the Conductor, then a Worker of that type 
-     * must be chosen.)
+     * must be chosen).
      * <p>
-     * Since a Worker whose type matches the type of an assigned task takes only 2 seconds to complete the task, while a
-     * Worker whose type doesn't match takes 10 seconds to complete the task, the ideal choice of Worker will be of a 
-     * similar type to the given task. However, if no such Worker is available at the present moment, a Worker of a 
-     * different type may be chosen under the following circumstances: 1) there are a sufficient number of tasks 
-     * remaining so that all the Workers of the matching type would be occupied during the extra time that the Worker 
-     * whose type doesn't match can complete the task, 2) all of these tasks are of the same type as the given task, and
+     * Since a Worker whose type matches the type of a given task takes only 2 seconds to complete, while a
+     * Worker whose type doesn't match the type of a given task takes 10 seconds to complete the task, the ideal choice
+     * of Worker will be of a similar type to the given task. However, if no such Worker is available at the present
+     * moment, a Worker of a different type may be chosen under the following circumstances:
+     * <p>
+     * 1) there are a sufficient number of tasks remaining so that all the Workers of the matching type would be occupied during the extra time that
+     * the Worker whose type doesn't match can complete the task
+     * <p>
+     * 2) all of these tasks are of the same type as the given task
+     * <p>
      * 3) a Worker of a different type is presently available. In the event that any of these conditions is false, the 
      * method will wait until a Worker of a similar type to the given task becomes available.
      * @param task the task that requires assignment
