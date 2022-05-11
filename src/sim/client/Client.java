@@ -1,20 +1,30 @@
 package sim.client;
 
-import sim.client.comms.TaskReceiver;
-import sim.client.comms.TaskSender;
-import sim.client.tracking.Tracker;
+import sim.comms.Receiver;
+import sim.comms.Sender;
+import sim.component.ComponentID;
+import sim.conductor.Conductor;
 import sim.task.Task;
-import sim.task.TaskA;
-import sim.task.TaskB;
 
 import java.io.IOException;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Random;
+
+import static sim.component.COMPONENT_TYPE.CLIENT;
+import static sim.task.TASK_TYPE.A;
+import static sim.task.TASK_TYPE.B;
 
 /**
  * This class acts as a Client in a distributed system. It initializes tasks and utilizes multithreading to send and
  * receive them to a corresponding master class.
+ * <p>
+ * Once the Client has been begun, it initially notifies the Conductor of its request to connect to it. Once that connection
+ * is established, the client will then use it's nested {@link TaskSender} class to send generated tasks to the Conductor.
+ * Once all tasks are sent, the TaskSender shuts itself down. Once the respective {@link TaskReceiver} receives all the
+ * tasks back from the Conductor, it calls the clients terminate method to close all related resources.
  * <p>
  * To use this class, start it from the command line by passing in a host name, port number, and the amount of tasks you
  * would like to get done.
@@ -22,68 +32,158 @@ import java.util.Random;
 public class Client {
 
     private static final Random RANDOM = new Random();
-    private static final Task ENDER_TASK = new TaskA(-1, -1);
+
+    private final ComponentID myComponentID = new ComponentID(CLIENT, RANDOM.nextInt());
+    private final Task ENDER_TASK = new Task(myComponentID.refID(), -1, A);
+    private final Socket mySocket;
+    private final TaskTracker taskTracker;
+    private final TaskSender sender = new TaskSender();
+    private final TaskReceiver receiver = new TaskReceiver();
+    private ObjectOutputStream objOut;
 
     /**
-     * @param args 1. hostName (IP address of Server) 2. Port Number of the {@link sim.conductor.Conductor} program 3. amount of tasks desired to
-     *             be created and executed
-     * @throws IOException if the program is interrupted
+     * @param clientSocket the socket that the client will use to send and receive messages from the Conductor
+     * @param taskAmt how many tasks the Client should generate and send / receive to and from the Conductor
      */
-    public static void main(String[] args) throws IOException {
+    public Client(Socket clientSocket, int taskAmt) {
+        mySocket = clientSocket;
+        taskTracker = new TaskTracker(initializeTasks(taskAmt));
+        initializeStreams();
+    }
 
-        if (args.length != 3) {
-            System.out.println("Usage: java Client <host name> <port number> <sim.task amount>");
-            System.exit(1);
-        }
+    /**
+     * Notifies the {@link Conductor} of the oncoming connection. Additionally, starts {@link TaskSender} and {@link TaskReceiver}
+     * threads to both send and receive tasks from the Conductor.
+     */
+    public void begin() {
+        notifyConductor();
+        sender.start();
+        receiver.start();
+    }
 
-        // Get necessary information to connect to sim.master.Master
-        String hostName = args[0];
-        int portNumber = Integer.parseInt(args[1]);
-
-        // Initialize clientID and n tasks, make sure it's not 0
-        int clientID;
-        while ((clientID = RANDOM.nextInt()) == 0)
-            clientID = RANDOM.nextInt();
-        int taskAmount = Integer.parseInt(args[2]);
-        Task[] tasks = initializeTasks(taskAmount, clientID);
-
-        // Initialize Socket, Sender/Receiver threads, and Tracker
-        Socket clientSocket = new Socket(hostName, portNumber);
-        Tracker tracker = new Tracker(tasks);
-        TaskSender taskSender = new TaskSender(tracker, clientSocket);
-        TaskReceiver taskReceiver = new TaskReceiver(tracker, clientSocket);
-
-        taskSender.start();
-        taskReceiver.start();
-
+    /**
+     * This method is internally used by the client. It uses the client socket used by this client instance to instantiate
+     * output and input streams to use to communicate to the Conductor.
+     */
+    private void initializeStreams() {
         try {
-            taskSender.join();
-            taskReceiver.join();
-        }
-
-        catch (InterruptedException e) {
+            objOut = new ObjectOutputStream(mySocket.getOutputStream());
+        } catch (IOException e){
             e.printStackTrace();
         }
     }
 
     /**
+     * This method is internally used to close all resources related to the client by closing the client socket used by this
+     * client instance.
+     */
+    private void terminate() {
+        System.out.printf("CLIENT %d: Received all tasks, ending communication with conductor...\n", myComponentID.refID());
+
+        try {
+            objOut.writeObject(ENDER_TASK);
+            mySocket.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
      * @param taskAmount amount of tasks to generate and initialize
-     * @param clientID the clientID that will be used to identify sim.task's parent-sim.client in other programs
      * @return an array of Tasks that contains as many tasks as specified via 'taskAmount'
      */
-    private static Task[] initializeTasks(int taskAmount, int clientID)
+    private Task[] initializeTasks(int taskAmount)
     {
         Task[] tasks = new Task[taskAmount];
         for (int i = 0; i < taskAmount; i++) {
 
             if (RANDOM.nextDouble() > 0.50)
-                tasks[i] = new TaskA(clientID, i);
+                tasks[i] = new Task(myComponentID.refID(), i, A);
 
-            else tasks[i] = new TaskB(clientID, i);
+            else tasks[i] = new Task(myComponentID.refID(), i, B);
 
         }
 
         return tasks;
+    }
+
+    /**
+     * Sends the clients {@link ComponentID} to the Conductor to let the Conductor prepare for its oncoming connection.
+     */
+    private void notifyConductor() {
+        try {
+            objOut.writeObject(myComponentID);
+        } catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * This class is used by the Client to send {@link Task}s to a {@link sim.conductor.Conductor} program. It extends {@link Thread}
+     * and will run concurrently along with this class's counterpart, {@link TaskReceiver}.
+     * <p>
+     * Once all tasks are sent, the thread shuts itself down.
+     */
+    private class TaskSender extends Thread implements Sender {
+        @Override public void run() {
+            send();
+        }
+
+        @Override
+        public void send() {
+            try {
+                Task t;
+                while ((t = taskTracker.take()) != null) {
+                    objOut.writeObject(t);
+                    System.out.printf("CLIENT %d: Sent %s\n", myComponentID.refID(), t);
+                }
+                System.out.printf("CLIENT %d: All tasks sent, sender thread terminating...\n", myComponentID.refID());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * This class is used by the Client to receive {@link Task}s from a {@link sim.conductor.Conductor} program. It extends {@link Thread}
+     * and will run concurrently along with this class's counterpart, {@link TaskSender}.
+     * <p>
+     * Once the {@link Conductor} sends all tasks back to the client, this thread will shut itself, along with the connection
+     * between this client instance and the Conductor down.
+     */
+    private class TaskReceiver extends Thread implements Receiver {
+        @Override public void run() {
+            receive();
+        }
+
+        @Override
+        public void receive() {
+            try{
+                ObjectInputStream objIn = new ObjectInputStream(mySocket.getInputStream());
+                Task incomingTask;
+                while (!taskTracker.isSatisfied()) {
+                    taskTracker.give((incomingTask = (Task) objIn.readObject()).taskID()); // Blocking call
+                    System.out.printf("CLIENT %d: Received %s\n", myComponentID.refID(), incomingTask);
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            finally {
+                terminate();
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        if (args.length != 3) {
+            System.out.println("Usage: java Client <host name> <port number> <task amount>");
+            System.exit(1);
+        }
+
+        Client c = new Client(new Socket(args[0], Integer.parseInt(args[1])), Integer.parseInt(args[2]));
+        c.begin();
     }
 }
 
