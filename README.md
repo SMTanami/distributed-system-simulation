@@ -8,4 +8,4 @@ To run the simulation, clone the repository and compile each class. Once compile
 - Worker: the Conductor's IP (localhost), the Conductor's port number, and the type of task this worker is best suited to execute (A or B)
 - Client: the Conductor's IP (localhost), the Conductor's port number, and the amount of tasks the client should instantiate and send out for completion
 
-### By Avi Reich and Michael Tanami
+### By Allen Reich and Michael Tanami
